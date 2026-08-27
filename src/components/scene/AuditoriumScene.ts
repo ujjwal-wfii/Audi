@@ -407,7 +407,7 @@ export class AuditoriumScene {
     foyerFloor.position.set(0, 0, lobbyZ + 6);
     this.scene.add(foyerFloor);
 
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x0b0f19, roughness: 0.6 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xe9e3d4, roughness: 0.6 });
 
     const leftWall = new THREE.Mesh(new THREE.BoxGeometry(9, 10, 0.6), wallMat);
     leftWall.position.set(-7.5, 5, lobbyZ);
@@ -417,8 +417,8 @@ export class AuditoriumScene {
     rightWall.position.set(7.5, 5, lobbyZ);
     this.scene.add(rightWall);
 
-    const topWall = new THREE.Mesh(new THREE.BoxGeometry(7, 4.5, 0.6), wallMat);
-    topWall.position.set(0, 7.75, lobbyZ);
+    const topWall = new THREE.Mesh(new THREE.BoxGeometry(7, 5.5, 0.6), wallMat);
+    topWall.position.set(0, 7.25, lobbyZ);
     this.scene.add(topWall);
 
     const signTexture = createEntranceSignTexture();
@@ -427,17 +427,17 @@ export class AuditoriumScene {
     signMesh.position.set(0, 6.2, lobbyZ + 0.35);
     this.scene.add(signMesh);
 
-    const doorWidth = 2.0;
+    const doorWidth = 3.0;
     const doorHeight = 4.8;
     const doorThickness = 0.15;
 
     const doorGlassMat = new THREE.MeshPhysicalMaterial({
-      color: 0x1e293b,
-      metalness: 0.1,
-      roughness: 0.2,
-      transmission: 0.3,
-      transparent: true,
-      opacity: 0.85,
+      color: 0x8b5a2b,
+      metalness: 0.0,
+      roughness: 0.8,
+      // transmission: 0.3,
+      // transparent: true,
+      // opacity: 0.85,
     });
 
     this.leftDoorGroup = new THREE.Group();
@@ -477,7 +477,7 @@ export class AuditoriumScene {
 
     this.scene.add(this.rightDoorGroup);
 
-    const gateHitboxGeo = new THREE.BoxGeometry(4.8, 5.0, 1.5);
+    const gateHitboxGeo = new THREE.BoxGeometry(6.0, 5.0, 1.5);
     const gateHitboxMat = new THREE.MeshBasicMaterial({ visible: false });
     this.gateHitbox = new THREE.Mesh(gateHitboxGeo, gateHitboxMat);
     this.gateHitbox.position.set(0, 2.5, lobbyZ);

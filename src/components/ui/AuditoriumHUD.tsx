@@ -156,7 +156,7 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
       {/* -------------------------------------------------------------
           LOBBY / ENTRANCE GATE CTA OVERLAY
       ------------------------------------------------------------- */}
-      {sceneState === 'LOBBY' && (
+      {/* {sceneState === 'LOBBY' && (
         <div className="pointer-events-auto my-auto mx-auto max-w-lg w-full bg-slate-950/80 backdrop-blur-xl border border-slate-700/70 rounded-3xl p-6 shadow-2xl text-center flex flex-col items-center animate-in zoom-in-95 duration-500">
           <div className="w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center mb-4 text-sky-400 shadow-lg shadow-sky-500/10">
             <DoorOpen className="w-7 h-7" />
@@ -185,7 +185,7 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-      )}
+      )} */}
 
       {/* -------------------------------------------------------------
           ENTERING CINEMATIC TRANSITION BANNER
