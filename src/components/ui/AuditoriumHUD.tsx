@@ -34,16 +34,16 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
   onViewModeChange,
 }) => {
   return (
-    <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-between p-4 md:p-6 select-none">
+    <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-between p-2 sm:p-3 md:p-6 select-none">
       {/* -------------------------------------------------------------
           TOP BAR (VISIBLE IN SEATED, OVERVIEW & POV MODES)
       ------------------------------------------------------------- */}
       {(sceneState === 'SEATED' || sceneState === 'OVERVIEW' || sceneState === 'CHANGING_SEAT') && (
-        <header className="pointer-events-auto flex flex-wrap items-center justify-between gap-3 bg-slate-900/85 backdrop-blur-md border border-slate-700/60 rounded-2xl px-5 py-3 shadow-2xl animate-in slide-in-from-top-4 duration-300">
+        <header className="pointer-events-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full bg-slate-900/85 backdrop-blur-md border border-slate-700/60 rounded-2xl px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 shadow-2xl animate-in slide-in-from-top-4 duration-300">
           {/* Title & Live Badge */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
             {/* Hall Overview Button */}
             <button
               onClick={() => onViewModeChange('OVERVIEW')}
-              className={`px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 border transition-all ${sceneState === 'OVERVIEW'
+              className={`px-2.5 sm:px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 border transition-all ${sceneState === 'OVERVIEW'
                 ? 'bg-indigo-600 border-indigo-400 text-white shadow-md'
                 : 'bg-slate-800/80 border-slate-700/70 text-slate-300 hover:bg-slate-700/80'
                 }`}
@@ -144,7 +144,7 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
             {/* Exit to Lobby */}
             <button
               onClick={() => onViewModeChange('LOBBY')}
-              className="px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-rose-950/60 border border-slate-700/70 hover:border-rose-700/60 text-slate-400 hover:text-rose-300 text-xs font-medium flex items-center gap-1.5 transition-all"
+              className="px-2.5 sm:px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-rose-950/60 border border-slate-700/70 hover:border-rose-700/60 text-slate-400 hover:text-rose-300 text-xs font-medium flex items-center gap-1.5 transition-all"
             >
               <LogOut className="w-3.5 h-3.5" />
               Exit to Lobby
@@ -204,12 +204,12 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
           BOTTOM CONTROLS: CLEAN CENTERED 3 POV SEAT SELECTOR
       ------------------------------------------------------------- */}
       {(sceneState === 'SEATED' || sceneState === 'OVERVIEW' || sceneState === 'CHANGING_SEAT') && (
-        <div className="pointer-events-auto flex items-center justify-center w-full animate-in slide-in-from-bottom-4 duration-300">
+        <div className="pointer-events-auto flex items-center justify-center w-full px-1 sm:px-2 animate-in slide-in-from-bottom-4 duration-300">
           {/* Direct POV Switcher */}
-          <div className="flex items-center gap-2 bg-slate-900/85 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700/60 shadow-2xl">
+          <div className="flex items-center gap-1 sm:gap-2 max-w-full bg-slate-900/85 backdrop-blur-md p-1 rounded-2xl border border-slate-700/60 shadow-2xl overflow-hidden">
             <button
               onClick={() => onPovChange('LEFT')}
-              className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${currentPov === 'LEFT'
+              className={`px-2 sm:px-4 py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition-all ${currentPov === 'LEFT'
                 ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/30 scale-105'
                 : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300'
                 }`}
@@ -220,18 +220,18 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
 
             <button
               onClick={() => onPovChange('CENTER')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${currentPov === 'CENTER'
+              className={`px-2 sm:px-5 py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition-all ${currentPov === 'CENTER'
                 ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/30 scale-105'
                 : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300'
                 }`}
             >
               <Star className="w-3.5 h-3.5 fill-current text-amber-300" />
-              Center Sweet-Spot
+              Center
             </button>
 
             <button
               onClick={() => onPovChange('RIGHT')}
-              className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${currentPov === 'RIGHT'
+              className={`px-2 sm:px-4 py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition-all ${currentPov === 'RIGHT'
                 ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/30 scale-105'
                 : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300'
                 }`}

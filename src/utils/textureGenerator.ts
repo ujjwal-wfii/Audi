@@ -113,13 +113,11 @@ export function createEntranceSignTexture(): THREE.CanvasTexture {
   ctx.lineWidth = 8;
   ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
 
-  // Glow line
-  ctx.shadowColor = '#38bdf8';
-  ctx.shadowBlur = 25;
+
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 56px "Segoe UI", Inter, sans-serif';
+  ctx.font = 'bold 50px "Segoe UI", Inter, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('HALL A • GRAND AUDITORIUM', canvas.width / 2, 110);
+  ctx.fillText('AUDITORIUM', canvas.width / 2, 145);
 
 
 

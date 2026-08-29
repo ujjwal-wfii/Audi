@@ -68,7 +68,7 @@ export const AuditoriumCanvas: React.FC = () => {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black select-none">
+    <div className="relative w-full h-full min-h-0 overflow-hidden bg-black select-none">
       {/* 3D WebGL Canvas Container */}
       <div ref={containerRef} className="absolute inset-0 w-full h-full" />
 

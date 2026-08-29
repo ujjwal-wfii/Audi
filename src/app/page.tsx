@@ -18,7 +18,7 @@ const AuditoriumCanvas = dynamic(
 
 export default function Home() {
   return (
-    <main className="w-screen h-screen overflow-hidden bg-black">
+    <main className="relative w-full h-full min-h-0 overflow-hidden bg-black">
       <AuditoriumCanvas />
     </main>
   );

@@ -96,6 +96,11 @@ export class AuditoriumScene {
   // Animation frame
   private animationFrameId: number | null = null;
   private isDestroyed = false;
+  // Observes the actual canvas/container size.
+  // More reliable than relying only on window resize events.
+  private resizeObserver: ResizeObserver | null = null;
+  private readonly referenceAspect = 16 / 9;
+  private readonly referenceFov = 54;
 
   constructor(container: HTMLElement, seats: SeatData[], callbacks: SceneCallbacks) {
     this.container = container;
@@ -110,7 +115,7 @@ export class AuditoriumScene {
     const height = container.clientHeight || window.innerHeight;
 
     // Camera with 54° FOV: Keynote Screen occupies 90% of viewport when seated
-    this.camera = new THREE.PerspectiveCamera(54, width / height, 0.05, 200);
+    this.camera = new THREE.PerspectiveCamera(this.referenceFov, width / height, 0.05, 200);
     // Initial camera in Lobby
     this.camera.position.set(0, 2.2, 38);
     this.currentLookAt.set(0, 2.2, 30);
@@ -140,6 +145,15 @@ export class AuditoriumScene {
     window.addEventListener('resize', this.onWindowResize);
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('click', this.onClick);
+    // Watch the actual Three.js container.
+    // This catches layout changes caused by responsive CSS,
+    // including changes that may not come through as a normal
+    // window resize event.
+    this.resizeObserver = new ResizeObserver(() => {
+      this.onWindowResize();
+    });
+
+    this.resizeObserver.observe(this.container);
 
     // Start loop
     this.animate = this.animate.bind(this);
@@ -423,8 +437,8 @@ export class AuditoriumScene {
 
     const signTexture = createEntranceSignTexture();
     const signMat = new THREE.MeshBasicMaterial({ map: signTexture });
-    const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 1.6), signMat);
-    signMesh.position.set(0, 6.2, lobbyZ + 0.35);
+    const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.65), signMat);
+    signMesh.position.set(0, 4.8, lobbyZ + 0.35);
     this.scene.add(signMesh);
 
     const doorWidth = 3.0;
@@ -485,21 +499,21 @@ export class AuditoriumScene {
     this.scene.add(this.gateHitbox);
     this.interactiveObjects.push(this.gateHitbox);
 
-    const beaconGeo = new THREE.RingGeometry(1.5, 1.8, 32);
-    const beaconMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
-    const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-    beacon.rotation.x = -Math.PI / 2;
-    beacon.position.set(0, 0.04, lobbyZ + 4);
-    this.scene.add(beacon);
+    //   const beaconGeo = new THREE.RingGeometry(1.5, 1.8, 32);
+    //   const beaconMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+    //   const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+    //   beacon.rotation.x = -Math.PI / 2;
+    //   beacon.position.set(0, 0.04, lobbyZ + 4);
+    //   this.scene.add(beacon);
 
-    gsap.to(beacon.scale, {
-      x: 1.25,
-      y: 1.25,
-      duration: 1.5,
-      repeat: -1,
-      yoyo: true,
-      ease: 'sine.inOut',
-    });
+    //   gsap.to(beacon.scale, {
+    //     x: 1.25,
+    //     y: 1.25,
+    //     duration: 1.5,
+    //     repeat: -1,
+    //     yoyo: true,
+    //     ease: 'sine.inOut',
+    //   });
   }
 
   /* -------------------------------------------------------------
@@ -655,6 +669,40 @@ export class AuditoriumScene {
     }
   }
 
+  // added camera aspect for mobile portrait
+  private updateCameraForAspect(width: number, height: number) {
+    const aspect = width / height;
+
+    // Desktop / landscape: keep the original 54° FOV.
+    if (aspect >= this.referenceAspect) {
+      this.camera.fov = this.referenceFov;
+    } else {
+      // On narrower screens, increase vertical FOV
+      // so the horizontal composition does not become
+      // excessively cropped.
+      const referenceHorizontalFov =
+        2 *
+        Math.atan(
+          Math.tan((this.referenceFov * Math.PI) / 360) *
+          this.referenceAspect
+        );
+
+      const mobileFov =
+        (2 *
+          Math.atan(
+            Math.tan(referenceHorizontalFov / 2) / aspect
+          ) *
+          180) /
+        Math.PI;
+
+      // Avoid extreme fisheye distortion.
+      this.camera.fov = Math.min(mobileFov, 110);
+    }
+
+    this.camera.aspect = aspect;
+    this.camera.updateProjectionMatrix();
+  }
+
   /* -------------------------------------------------------------
      CINEMATIC FLOW: GATE OPEN & ENTER AUDITORIUM (90% SCREEN IMMERSION)
   ------------------------------------------------------------- */
@@ -808,17 +856,32 @@ export class AuditoriumScene {
       gsap.to(this.leftDoorGroup.rotation, { y: 0, duration: 1.0 });
       gsap.to(this.rightDoorGroup.rotation, { y: 0, duration: 1.0 });
 
+      const width = this.container.clientWidth || window.innerWidth;
+      const height = this.container.clientHeight || window.innerHeight;
+      const isPortrait = height > width;
+
+      const lobbyCamera = isPortrait
+        ? {
+          position: { x: 0, y: 2.6, z: 36 },
+          lookAt: { x: 0, y: 2.7, z: 30 },
+        }
+        : {
+          position: { x: 0, y: 2.2, z: 38 },
+          lookAt: { x: 0, y: 2.2, z: 30 },
+        };
+
       gsap.to(this.camera.position, {
-        x: 0,
-        y: 2.2,
-        z: 38,
+        x: lobbyCamera.position.x,
+        y: lobbyCamera.position.y,
+        z: lobbyCamera.position.z,
         duration: 1.6,
         ease: 'power2.inOut',
       });
+
       gsap.to(this.currentLookAt, {
-        x: 0,
-        y: 2.2,
-        z: 30,
+        x: lobbyCamera.lookAt.x,
+        y: lobbyCamera.lookAt.y,
+        z: lobbyCamera.lookAt.z,
         duration: 1.6,
         ease: 'power2.inOut',
       });
@@ -894,12 +957,39 @@ export class AuditoriumScene {
 
   private onWindowResize() {
     if (!this.container || this.isDestroyed) return;
+
     const width = this.container.clientWidth || window.innerWidth;
     const height = this.container.clientHeight || window.innerHeight;
 
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    if (width <= 0 || height <= 0) return;
+
+    // The Three.js camera must use the actual
+    // available screen/container proportions.
+    this.updateCameraForAspect(width, height);
+
+    // Resize the WebGL drawing surface to exactly
+    // match the available container.
+
+    // Adjust ONLY the portrait mobile lobby camera.
+    // Desktop and landscape keep the original camera position.
+    if (this.currentState === 'LOBBY') {
+      const isPortrait = height > width;
+
+      if (isPortrait) {
+        this.camera.position.set(0, 2.6, 36);
+        this.currentLookAt.set(0, 2.7, 30);
+      } else {
+        this.camera.position.set(0, 2.2, 38);
+        this.currentLookAt.set(0, 2.2, 30);
+      }
+    }
     this.renderer.setSize(width, height);
+
+    // Keep the scene sharp on phones/tablets with
+    // high-density displays without excessive GPU usage.
+    this.renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, 2)
+    );
   }
 
   /* -------------------------------------------------------------
@@ -932,6 +1022,10 @@ export class AuditoriumScene {
     window.removeEventListener('resize', this.onWindowResize);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('click', this.onClick);
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
 
     if (this.renderer.domElement.parentNode) {
       this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
