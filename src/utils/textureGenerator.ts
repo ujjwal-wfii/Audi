@@ -6,8 +6,8 @@ import * as THREE from 'three';
  */
 export function createKeynoteScreenTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
-  canvas.width = 2048;
-  canvas.height = 1024;
+  canvas.width = 1920;
+  canvas.height = 1080;
   const ctx = canvas.getContext('2d');
   if (!ctx) return new THREE.CanvasTexture(canvas);
 
@@ -82,14 +82,22 @@ export function createKeynoteScreenTexture(): THREE.CanvasTexture {
   ctx.shadowColor = '#38bdf8';
   ctx.shadowBlur = 24;
   ctx.font = '900 82px "Montserrat", "Segoe UI", Inter, sans-serif';
-  ctx.fillText('OPEXN', canvas.width / 2, 500);
+  ctx.fillText(
+    'OPEXN',
+    canvas.width / 2,
+    canvas.height * 0.52
+  );
 
 
   // Sub-badge / Conference year
   ctx.shadowBlur = 8;
   ctx.fillStyle = '#38bdf8';
   ctx.font = '600 24px "Segoe UI", Inter, sans-serif';
-  ctx.fillText(' LIVE FROM MAIN HALL', canvas.width / 2, 560);
+  ctx.fillText(
+    ' LIVE FROM MAIN HALL',
+    canvas.width / 2,
+    canvas.height * 0.59
+  );
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;

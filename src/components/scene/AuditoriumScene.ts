@@ -10,6 +10,7 @@ import {
   createCarpetTexture,
   createMarbleTexture,
 } from '@/utils/textureGenerator';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export interface PovConfig {
   id: PovPosition;
@@ -28,8 +29,8 @@ export const POV_PRESETS: Record<PovPosition, PovConfig> = {
     name: 'Left VIP Seat POV',
     badge: 'Left VIP • 90% Screen Immersion',
     description: 'Direct straight-on frontal presentation view with 90% screen viewport occupancy',
-    position: new THREE.Vector3(-3.2, 5.0, 1.2),
-    lookAt: new THREE.Vector3(0.4, 5.0, -8.5),
+    position: new THREE.Vector3(-3.2, 7.0, 4.2),
+    lookAt: new THREE.Vector3(0.4, 7.0, -8.5),
     associatedSeatId: 'C-3',
   },
   CENTER: {
@@ -37,8 +38,8 @@ export const POV_PRESETS: Record<PovPosition, PovConfig> = {
     name: 'Center VIP Sweet-Spot POV',
     badge: 'Center Sweet-Spot • 90% Screen Immersion',
     description: 'Prime central direct presentation view with 90% screen viewport occupancy',
-    position: new THREE.Vector3(0, 5.0, 0.8),
-    lookAt: new THREE.Vector3(0, 5.0, -8.5),
+    position: new THREE.Vector3(0, 7.0, 3.8),
+    lookAt: new THREE.Vector3(0, 7.0, -8.5),
     associatedSeatId: 'C-10',
   },
   RIGHT: {
@@ -46,8 +47,8 @@ export const POV_PRESETS: Record<PovPosition, PovConfig> = {
     name: 'Right VIP Seat POV',
     badge: 'Right VIP • 90% Screen Immersion',
     description: 'Direct straight-on frontal presentation view with 90% screen viewport occupancy',
-    position: new THREE.Vector3(3.2, 5.0, 1.2),
-    lookAt: new THREE.Vector3(-0.4, 5.0, -8.5),
+    position: new THREE.Vector3(3.2, 7.0, 4.2),
+    lookAt: new THREE.Vector3(-0.4, 7.0, -8.5),
     associatedSeatId: 'C-18',
   },
 };
@@ -100,7 +101,7 @@ export class AuditoriumScene {
   // More reliable than relying only on window resize events.
   private resizeObserver: ResizeObserver | null = null;
   private readonly referenceAspect = 16 / 9;
-  private readonly referenceFov = 54;
+  private readonly referenceFov = 60;
 
   constructor(container: HTMLElement, seats: SeatData[], callbacks: SceneCallbacks) {
     this.container = container;
@@ -164,10 +165,12 @@ export class AuditoriumScene {
      LIGHTING SETUP
   ------------------------------------------------------------- */
   private setupLighting() {
-    this.ambientLight = new THREE.AmbientLight(0x1e283d, 1.0);
+    this.ambientLight = new THREE.AmbientLight(0xfff4e6,
+      1.15);
     this.scene.add(this.ambientLight);
 
-    this.houseLight = new THREE.DirectionalLight(0xffecd2, 0.7);
+    this.houseLight = new THREE.DirectionalLight(0xffe8cc,
+      1.1);
     this.houseLight.position.set(0, 24, 12);
     this.houseLight.castShadow = true;
     this.houseLight.shadow.mapSize.width = 2048;
@@ -195,9 +198,9 @@ export class AuditoriumScene {
     this.scene.add(this.centerSpot.target);
 
     // Stage Soft Blue Floor Glow
-    const stageBlueLight = new THREE.PointLight(0x0284c7, 4.0, 25);
-    stageBlueLight.position.set(0, 2.5, -7.5);
-    this.scene.add(stageBlueLight);
+    // const stageBlueLight = new THREE.PointLight(0x0284c7, 4.0, 25);
+    // stageBlueLight.position.set(0, 2.5, -7.5);
+    // this.scene.add(stageBlueLight);
 
     // Entrance Gate Downlight
     const lobbyLight = new THREE.PointLight(0x60a5fa, 3.0, 18);
@@ -215,6 +218,7 @@ export class AuditoriumScene {
     // 1. Stage Platform
     const stageWidth = 28;
     const stageHeight = 1.2;
+    const stageDepth = 20;
 
     const stageMaterial = new THREE.MeshStandardMaterial({
       map: woodTexture,
@@ -222,41 +226,60 @@ export class AuditoriumScene {
       metalness: 0.15,
     });
 
-    const stageGeo = new THREE.CylinderGeometry(
-      stageWidth / 2,
-      stageWidth / 2 + 0.8,
+    const stageGeo = new THREE.BoxGeometry(
+      stageWidth,
       stageHeight,
-      48,
-      1,
-      false,
-      0,
-      Math.PI
+      stageDepth
     );
     const stage = new THREE.Mesh(stageGeo, stageMaterial);
-    stage.rotation.y = -Math.PI / 2;
+    // stage.rotation.y = -Math.PI / 2;
     stage.position.set(STAGE_CENTER.x, stageHeight / 2, -7.5);
     stage.receiveShadow = true;
     this.scene.add(stage);
 
     // 2. Large Curved Keynote Screen (90% Viewport Occupancy, Center at Y = 5.0, Z = -8.5)
-    const screenHeight = 13.0;
-    const screenRadius = 18;
-    const screenArc = 1.45; // ~83 degree wide immersive panoramic screen
+    // const screenHeight = 13.0;
+    // const screenRadius = 18;
+    // const screenArc = 1.45; // ~83 degree wide immersive panoramic screen
 
-    const screenGeo = new THREE.CylinderGeometry(
-      screenRadius,
-      screenRadius,
-      screenHeight,
-      64,
-      1,
-      true,
-      -screenArc / 2,
-      screenArc
+    // const screenGeo = new THREE.CylinderGeometry(
+    //   screenRadius,
+    //   screenRadius,
+    //   screenHeight,
+    //   64,
+    //   1,
+    //   true,
+    //   -screenArc / 2,
+    //   screenArc
+    // );
+
+    // const screenTexture = createKeynoteScreenTexture();
+    // screenTexture.wrapS = THREE.RepeatWrapping;
+    // screenTexture.repeat.set(-1, 1);
+    // screenTexture.center.set(0.5, 0.5);
+    // screenTexture.needsUpdate = true;
+
+    // const screenMat = new THREE.MeshBasicMaterial({
+    //   map: screenTexture,
+    //   side: THREE.DoubleSide,
+    // });
+
+    // this.screenMesh = new THREE.Mesh(screenGeo, screenMat);
+    // // Positioned directly at frontal eye-level Y = 5.0, Z = -8.5
+    // this.screenMesh.position.set(0, 6.5, -8.5);
+    // this.screenMesh.rotation.y = Math.PI;
+    // this.scene.add(this.screenMesh);
+    const screenWidth = 28;
+    const screenHeight = 13;
+
+    const screenGeo = new THREE.PlaneGeometry(
+      screenWidth,
+      screenHeight
     );
 
     const screenTexture = createKeynoteScreenTexture();
-    screenTexture.wrapS = THREE.RepeatWrapping;
-    screenTexture.repeat.set(-1, 1);
+    // screenTexture.wrapS = THREE.RepeatWrapping;
+    // screenTexture.repeat.set(1, 1);
     screenTexture.center.set(0.5, 0.5);
     screenTexture.needsUpdate = true;
 
@@ -266,52 +289,199 @@ export class AuditoriumScene {
     });
 
     this.screenMesh = new THREE.Mesh(screenGeo, screenMat);
-    // Positioned directly at frontal eye-level Y = 5.0, Z = -8.5
-    this.screenMesh.position.set(0, 5.0, -8.5);
-    this.screenMesh.rotation.y = Math.PI;
+
+    // Vertical rectangular screen
+    // Bottom = 0, top = 13
+    this.screenMesh.position.set(0, screenHeight / 2, -8.5);
+
+    this.screenMesh.rotation.y = 0;
+
     this.scene.add(this.screenMesh);
 
-    // Screen Bezel Outer Frame
-    const frameMat = new THREE.MeshStandardMaterial({
-      color: 0x050811,
-      roughness: 0.4,
-      metalness: 0.6,
+    const backWallZ = -11;
+    const backWallMat = new THREE.MeshStandardMaterial({
+      color: 0xD6C7B0,
+      roughness: 0.85,
+      metalness: 0.1,
     });
-    const frameMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(screenRadius + 0.12, screenRadius + 0.12, screenHeight + 0.35, 64, 1, true, -screenArc / 2 - 0.01, screenArc + 0.02),
-      frameMat
-    );
-    frameMesh.position.copy(this.screenMesh.position);
-    frameMesh.rotation.y = Math.PI;
-    this.scene.add(frameMesh);
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(50, 24, 1.0), backWallMat);
+    backWall.position.set(0, 12, backWallZ);
+    backWall.receiveShadow = true;
+    this.scene.add(backWall);
+
+    // Side "return" walls that close the gap between the proscenium and the
+    // rear wall, so there's no visible gap/void at a grazing viewing angle.
+    const wingReturnMat = new THREE.MeshStandardMaterial({ color: 0xD6C7B0, roughness: 0.8 });
+    const wingDepth = 7; // fixed depth — plenty to close the gap regardless of screen geometry
+    for (const side of [-1, 1]) {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.0, 24, wingDepth), wingReturnMat);
+      wing.position.set(side * 24, 12, backWallZ + wingDepth / 2 + 0.5);
+      this.scene.add(wing);
+    }
+
+    // // Screen Bezel Outer Frame
+    // const frameMat = new THREE.MeshStandardMaterial({
+    //   color: 0x050811,
+    //   roughness: 0.4,
+    //   metalness: 0.6,
+    // });
+    // const frameMesh = new THREE.Mesh(
+    //   new THREE.CylinderGeometry(screenRadius + 0.12, screenRadius + 0.12, screenHeight + 0.35, 64, 1, true, -screenArc / 2 - 0.01, screenArc + 0.02),
+    //   frameMat
+    // );
+    // frameMesh.position.copy(this.screenMesh.position);
+    // frameMesh.rotation.y = Math.PI;
+    // this.scene.add(frameMesh);
 
     // 3. Stage Speaker Podium / Lectern
-    const podiumGeo = new THREE.BoxGeometry(1.2, 1.25, 0.8);
-    const podiumMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.2, metalness: 0.7 });
-    const podium = new THREE.Mesh(podiumGeo, podiumMat);
-    podium.position.set(-8.5, stageHeight + 0.62, -6.5);
-    podium.rotation.y = 0.5;
-    this.scene.add(podium);
+    const loader = new GLTFLoader();
+    loader.load('/models/Untitled.glb', (gltf) => {
+      const podium = gltf.scene;
+      podium.scale.setScalar(0.8);
+
+      podium.position.set(-9.5, stageHeight, -0.5);
+      podium.rotation.y = 1;
+
+      podium.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: 0x5c3822,
+            roughness: 0.45,
+            metalness: 0.05,
+          });
+        }
+      });
+
+      this.scene.add(podium);
+    });
+    // =========================
+    // Plants beside the screen
+    // =========================
+    const plantLoader = new GLTFLoader();
+
+    plantLoader.load(
+      '/models/plant.glb',
+      (gltf) => {
+
+        const plantSource = gltf.scene;
+
+        const addPlant = (x: number, y: number, z: number) => {
+          const plant = plantSource.clone(true);
+
+          // Position
+          plant.position.set(x, y, z);
+
+          // Make it clearly visible for testing
+          plant.scale.setScalar(7);
+
+          plant.rotation.y = 0;
+
+          // Make sure the model is visible
+          plant.visible = true;
+
+          plant.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.visible = true;
+              child.castShadow = true;
+              child.receiveShadow = true;
+
+              if (child.material) {
+                child.material.transparent = false;
+                child.material.opacity = 1;
+              }
+            }
+          });
+
+          this.scene.add(plant);
+        };
+
+        // Left and right of screen
+        addPlant(-17, 3.5, -7);
+        addPlant(17, 3.5, -7);
+        addPlant(-22, 3.5, -1);
+        addPlant(22, 3.5, -1);
+      },
+      undefined,
+      (error) => {
+        console.error('PLANT GLB FAILED TO LOAD:', error);
+      }
+    );
+    //Adding Sofa in front of stage
+    const sofaLoader = new GLTFLoader();
+
+    sofaLoader.load(
+      '/models/sofa.glb',
+      (gltf) => {
+        const sofaSource = gltf.scene;
+        const addSofa = (x: number, y: number, z: number) => {
+          const sofa = sofaSource.clone(true);
+          // Position
+          sofa.position.set(x, y, z);
+          // Size
+          sofa.scale.setScalar(5);
+          // Rotation
+          sofa.rotation.y = Math.PI;
+          // Make sure the model is visible
+          sofa.visible = true;
+          sofa.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.visible = true;
+              child.castShadow = true;
+              child.receiveShadow = true;
+              if (child.material) {
+                child.material.transparent = false;
+                child.material.opacity = 1;
+              }
+            }
+          });
+
+          this.scene.add(sofa);
+        };
+
+        // five sofas in front of the stage
+        addSofa(-10, 1.5, 7.5);
+        addSofa(-5, 1.5, 7.5);
+        addSofa(0, 1.5, 7.5);
+        addSofa(5, 1.5, 7.5);
+        addSofa(10, 1.5, 7.5);
+      },
+      undefined,
+      (error) => {
+        console.error('SOFA GLB FAILED TO LOAD:', error);
+      }
+    );
+    // const podiumGeo = new THREE.BoxGeometry(1.2, 4.2, 0.8);
+    // const podiumMat = new THREE.MeshStandardMaterial({ color: 0xD6C7B0, roughness: 0.2, metalness: 0.7 });
+    // const podium = new THREE.Mesh(podiumGeo, podiumMat);
+    // podium.position.set(-8.5, stageHeight + 0.62, -4.5);
+    // podium.rotation.y = 0.5;
+    // this.scene.add(podium);
 
     // 4. Acoustic Wooden Slat Side Walls
-    const wallWoodMat = new THREE.MeshStandardMaterial({
-      color: 0x422617,
-      roughness: 0.5,
-      metalness: 0.1,
+    const wallBeigeMat = new THREE.MeshStandardMaterial({
+      color: 0xD6C7B0,
+      roughness: 0.75,
+      metalness: 0.0,
+    });
+    // Decorative wooden wall fins — dark warm wood
+    const wallFinWoodMat = new THREE.MeshStandardMaterial({
+      color: 0x5A3824,
+      roughness: 0.55,
+      metalness: 0.05,
     });
 
     const sconceGlowMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
 
     for (const side of [-1, 1]) {
       const wallGeo = new THREE.BoxGeometry(0.6, 18, 46);
-      const wall = new THREE.Mesh(wallGeo, wallWoodMat);
+      const wall = new THREE.Mesh(wallGeo, wallBeigeMat);
       wall.position.set(side * 24, 9, 10);
       wall.rotation.y = side * -0.07;
       this.scene.add(wall);
 
       for (let i = 0; i < 9; i++) {
         const finGeo = new THREE.BoxGeometry(0.35, 12, 1.4);
-        const fin = new THREE.Mesh(finGeo, wallWoodMat);
+        const fin = new THREE.Mesh(finGeo, wallFinWoodMat);
         fin.position.set(side * 23.4, 7.2, -5 + i * 4.2);
         fin.rotation.y = side * -0.28;
         this.scene.add(fin);
@@ -324,72 +494,131 @@ export class AuditoriumScene {
         }
       }
     }
-    const tierCarpetMat = new THREE.MeshStandardMaterial({
-      map: carpetTex,
-      roughness: 0.85,
-    });
-
-    // 5. Tiered Stepped Floor Risers (STORED IN tierMeshes SO WE CAN HIDE THEM IN POV MODE TO PREVENT ANY STRIPS IN FRONT OF SCREEN)
     // const tierCarpetMat = new THREE.MeshStandardMaterial({
     //   map: carpetTex,
     //   roughness: 0.85,
     // });
 
-    // const tierFrontMat = new THREE.MeshStandardMaterial({
-    //   color: 0x1f140e,
-    //   roughness: 0.6,
-    // });
+    // 5. Tiered Stepped Floor Risers (STORED IN tierMeshes SO WE CAN HIDE THEM IN POV MODE TO PREVENT ANY STRIPS IN FRONT OF SCREEN)
+    const tierCarpetMat = new THREE.MeshStandardMaterial({
+      map: carpetTex,
+      roughness: 0.85,
+    });
 
-    // const stepAmberMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
-    // const seatingArcSpan = 1.30;
+    const tierFrontMat = new THREE.MeshStandardMaterial({
+      color: 0x6b4f2a,
+      roughness: 0.6,
+    });
 
-    // ROW_CONFIGS.forEach((rowConfig, idx) => {
-    //   const { radius, elevation } = rowConfig;
-    //   const innerR = radius - 0.95;
-    //   const outerR = radius + 1.15;
+    const stepAmberMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+    });
 
-    //   const riserGeo = new THREE.RingGeometry(innerR, outerR, 48, 1, -seatingArcSpan / 2, seatingArcSpan);
-    //   const riserMesh = new THREE.Mesh(riserGeo, tierCarpetMat);
-    //   riserMesh.rotation.x = -Math.PI / 2;
-    //   riserMesh.rotation.z = Math.PI / 2;
-    //   riserMesh.position.set(STAGE_CENTER.x, elevation - 0.01, STAGE_CENTER.z);
-    //   riserMesh.receiveShadow = true;
-    //   this.scene.add(riserMesh);
-    //   this.tierMeshes.push(riserMesh);
+    // Same values as the new straight seat layout
+    const seatingWidth = 35.0;
+    const rowDepth = 2.2;
+    const firstRowZ = 10.0;
 
-    //   const fasciaHeight = idx === 0 ? elevation : elevation - ROW_CONFIGS[idx - 1].elevation;
-    //   const fasciaGeo = new THREE.CylinderGeometry(
-    //     innerR,
-    //     innerR,
-    //     fasciaHeight,
-    //     48,
-    //     1,
-    //     true,
-    //     -seatingArcSpan / 2,
-    //     seatingArcSpan
-    //   );
-    //   const fasciaMesh = new THREE.Mesh(fasciaGeo, tierFrontMat);
-    //   fasciaMesh.rotation.y = Math.PI;
-    //   fasciaMesh.position.set(STAGE_CENTER.x, elevation - fasciaHeight / 2, STAGE_CENTER.z);
-    //   this.scene.add(fasciaMesh);
-    //   this.tierMeshes.push(fasciaMesh);
+    ROW_CONFIGS.forEach((rowConfig, idx) => {
+      const { elevation } = rowConfig;
 
-    //   const aisleStepGeo = new THREE.BoxGeometry(1.6, 0.02, 0.08);
-    //   const aisleStepLight = new THREE.Mesh(aisleStepGeo, stepAmberMat);
-    //   aisleStepLight.position.set(0, elevation + 0.01, STAGE_CENTER.z + innerR);
-    //   this.scene.add(aisleStepLight);
-    //   this.tierMeshes.push(aisleStepLight);
-    // });
+      const z = firstRowZ + idx * rowDepth;
+
+      // Height difference from the previous row
+      const fasciaHeight =
+        idx === 0
+          ? elevation
+          : elevation - ROW_CONFIGS[idx - 1].elevation;
+
+      // --------------------------------
+      // ROW PLATFORM
+      // --------------------------------
+
+      const platformGeo = new THREE.BoxGeometry(
+        seatingWidth,
+        0.15,
+        rowDepth
+      );
+
+      const platformMesh = new THREE.Mesh(
+        platformGeo,
+        tierCarpetMat
+      );
+
+      platformMesh.position.set(
+        STAGE_CENTER.x,
+        elevation - 0.075,
+        z
+      );
+
+      platformMesh.receiveShadow = true;
+
+      this.scene.add(platformMesh);
+      this.tierMeshes.push(platformMesh);
+
+      // --------------------------------
+      // FRONT OF STEP / RISER
+      // --------------------------------
+
+      if (fasciaHeight > 0) {
+        const fasciaGeo = new THREE.BoxGeometry(
+          seatingWidth,
+          fasciaHeight,
+          0.12
+        );
+
+        const fasciaMesh = new THREE.Mesh(
+          fasciaGeo,
+          tierFrontMat
+        );
+
+        fasciaMesh.position.set(
+          STAGE_CENTER.x,
+          elevation - fasciaHeight / 2,
+          z - rowDepth / 2
+        );
+
+        fasciaMesh.castShadow = true;
+        fasciaMesh.receiveShadow = true;
+
+        this.scene.add(fasciaMesh);
+        this.tierMeshes.push(fasciaMesh);
+      }
+
+      // --------------------------------
+      // CENTER AISLE STEP LIGHT
+      // --------------------------------
+
+      const aisleStepGeo = new THREE.BoxGeometry(
+        1.6,
+        0.04,
+        0.12
+      );
+
+      const aisleStepLight = new THREE.Mesh(
+        aisleStepGeo,
+        stepAmberMat
+      );
+
+      aisleStepLight.position.set(
+        0,
+        elevation + 0.02,
+        z - rowDepth / 2
+      );
+
+      this.scene.add(aisleStepLight);
+      this.tierMeshes.push(aisleStepLight);
+    });
 
     // 6. Solid Flat Ground Floor
-    const groundFloorGeo = new THREE.PlaneGeometry(42, 30);
+    const groundFloorGeo = new THREE.PlaneGeometry(50, 30);
     const groundFloorMesh = new THREE.Mesh(groundFloorGeo, tierCarpetMat);
     groundFloorMesh.rotation.x = -Math.PI / 2;
     groundFloorMesh.position.set(0, 0, 4);
     this.scene.add(groundFloorMesh);
 
-    // 7. Dark Ceiling with Overhead Spotlights & Architectural Beams
-    const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x05070e, roughness: 0.9 });
+    // 7. white Ceiling with Overhead Spotlights & Architectural Beams
+    const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
     const ceilingMesh = new THREE.Mesh(new THREE.PlaneGeometry(48, 52), ceilingMat);
     ceilingMesh.rotation.x = Math.PI / 2;
     ceilingMesh.position.set(0, 16.5, 12);
@@ -520,104 +749,445 @@ export class AuditoriumScene {
      3D CONTIGUOUS AUDITORIUM SEATS
   ------------------------------------------------------------- */
   private buildSeatingArea(seats: SeatData[]) {
-    const seatBaseGeo = new THREE.BoxGeometry(0.56, 0.12, 0.50);
-    const seatBackCushionGeo = new THREE.BoxGeometry(0.54, 0.66, 0.08);
-    const seatBackWoodGeo = new THREE.BoxGeometry(0.56, 0.70, 0.04);
-    const armrestMetalGeo = new THREE.BoxGeometry(0.06, 0.32, 0.44);
-    const armrestWoodCapGeo = new THREE.BoxGeometry(0.08, 0.04, 0.46);
-    const legGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.38, 8);
-    const aisleEndPanelGeo = new THREE.BoxGeometry(0.08, 0.65, 0.52);
+    /*
+    * NEW PREMIUM AUDITORIUM SEAT
+    *
+    * Visual-only replacement for the old seat model.
+    * Seat positions, rotations, IDs and POV behavior remain unchanged.
+    */
 
-    const woodMat = new THREE.MeshStandardMaterial({
-      color: 0x5c3822,
-      roughness: 0.35,
-      metalness: 0.05,
+    // ---------------------------------------------------------
+    // Slightly larger than the previous 0.56m-wide seat
+    // ---------------------------------------------------------
+    const seatWidth = 0.92;
+
+    // ---------------------------------------------------------
+    // Materials
+    // ---------------------------------------------------------
+
+    const velvetMat = new THREE.MeshStandardMaterial({
+      color: 0x2854a6,
+      roughness: 0.88,
+      metalness: 0.03,
     });
 
-    const metalMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
-      metalness: 0.85,
+    const walnutMat = new THREE.MeshStandardMaterial({
+      color: 0x241a10,
+      roughness: 0.38,
+      metalness: 0.12,
+    });
+
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xc9a15a,
       roughness: 0.25,
+      metalness: 0.75,
     });
 
-    const markerLedMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+    const darkMetalMat = new THREE.MeshStandardMaterial({
+      color: 0x151515,
+      roughness: 0.4,
+      metalness: 0.55,
+    });
 
-    seats.forEach((seat) => {
-      const seatGroup = new THREE.Group();
-      seatGroup.position.set(seat.position.x, seat.position.y, seat.position.z);
-      seatGroup.rotation.set(seat.rotation.x, seat.rotation.y, seat.rotation.z);
+    const ledMat = new THREE.MeshBasicMaterial({
+      color: 0x3fa9ff,
+    });
 
-      this.seatPositions.set(seat.id, new THREE.Vector3(seat.position.x, seat.position.y, seat.position.z));
+    /*
+    * Helper for creating rounded rectangular geometry.
+    *
+    * This gives the same visual idea as Drei's RoundedBox
+    * without changing your native Three.js architecture.
+    */
+    const createRoundedBox = (
+      width: number,
+      height: number,
+      depth: number,
+      radius: number,
+      material: THREE.Material,
+    ) => {
+      const shape = new THREE.Shape();
 
-      let cushionColor = 0x162f52;
-      if (seat.tier === 'VIP') cushionColor = 0x122744;
-      if (seat.status === 'occupied') cushionColor = 0x243242;
+      const x = -width / 2;
+      const y = -height / 2;
 
-      const cushionMat = new THREE.MeshStandardMaterial({
-        color: cushionColor,
-        roughness: 0.65,
-        metalness: 0.1,
+      shape.moveTo(x + radius, y);
+      shape.lineTo(x + width - radius, y);
+
+      shape.quadraticCurveTo(
+        x + width,
+        y,
+        x + width,
+        y + radius,
+      );
+
+      shape.lineTo(x + width, y + height - radius);
+
+      shape.quadraticCurveTo(
+        x + width,
+        y + height,
+        x + width - radius,
+        y + height,
+      );
+
+      shape.lineTo(x + radius, y + height);
+
+      shape.quadraticCurveTo(
+        x,
+        y + height,
+        x,
+        y + height - radius,
+      );
+
+      shape.lineTo(x, y + radius);
+
+      shape.quadraticCurveTo(
+        x,
+        y,
+        x + radius,
+        y,
+      );
+
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth,
+        bevelEnabled: true,
+        bevelSegments: 3,
+        steps: 1,
+        bevelSize: radius * 0.55,
+        bevelThickness: radius * 0.55,
+        curveSegments: 4,
       });
 
-      const baseCushion = new THREE.Mesh(seatBaseGeo, cushionMat);
-      baseCushion.position.set(0, 0.40, 0);
-      baseCushion.castShadow = true;
-      seatGroup.add(baseCushion);
+      geometry.center();
 
-      const backrestWood = new THREE.Mesh(seatBackWoodGeo, woodMat);
-      backrestWood.position.set(0, 0.72, -0.22);
-      backrestWood.rotation.x = -0.11;
-      backrestWood.castShadow = true;
-      seatGroup.add(backrestWood);
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
 
-      const backrestCushion = new THREE.Mesh(seatBackCushionGeo, cushionMat);
-      backrestCushion.position.set(0, 0.72, -0.17);
-      backrestCushion.rotation.x = -0.11;
-      backrestCushion.castShadow = true;
-      seatGroup.add(backrestCushion);
+      return mesh;
+    };
+
+    seats.forEach((seat) => {
+      // -------------------------------------------------------
+      // Preserve existing seat group and transform
+      // -------------------------------------------------------
+
+      const seatGroup = new THREE.Group();
+
+      // -------------------------------------------------------
+      // FORCE STRAIGHT ROW SEATING
+      // Ignore any old curved X/Z positions from seat data.
+      // -------------------------------------------------------
+
+      const seatPitch = 1.45;
+      const centerAisleHalfWidth = 1.8;
+      const seatsPerSide = 10;
+      const firstRowZ = 10.0;
+      const rowSpacing = 2.2;
+
+      const rowIndex = ROW_CONFIGS.findIndex(
+        (rowConfig) => rowConfig.row === seat.row
+      );
+
+      const straightZ =
+        firstRowZ + rowIndex * rowSpacing;
+
+      let straightX: number;
+
+      if (seat.number <= seatsPerSide) {
+        // LEFT SIDE: seats 1-6
+        straightX =
+          -(centerAisleHalfWidth + seatPitch / 2) -
+          (seatsPerSide - 1 - (seat.number - 1)) * seatPitch;
+      } else if (seat.number <= seatsPerSide * 2) {
+        // RIGHT SIDE: seats 7-12
+        straightX = centerAisleHalfWidth + seatPitch / 2 + (seat.number - seatsPerSide - 1) * seatPitch;
+      } else {
+        // Ignore seats 13 and above
+        return;
+      }
+
+
+      seatGroup.position.set(
+        straightX,
+        seat.position.y,
+        straightZ
+      );
+
+      // Every seat faces the screen in exactly the same direction.
+      seatGroup.rotation.set(0, 0, 0);
+
+      // IMPORTANT:
+      // These are required by your existing POV system.
+      this.seatPositions.set(
+        seat.id,
+        new THREE.Vector3(
+          straightX,
+          seat.position.y,
+          straightZ,
+        ),
+      );
+
+      // -------------------------------------------------------
+      // Preserve your existing seat status/tier logic
+      // -------------------------------------------------------
+
+      let cushionColor = 0x2854a6;
+
+      const seatVelvetMat = new THREE.MeshStandardMaterial({
+        color: cushionColor,
+        roughness: 0.88,
+        metalness: 0.03,
+      });
+
+      // -------------------------------------------------------
+      // 1. MAIN SEAT CUSHION
+      // -------------------------------------------------------
+
+      const cushion = createRoundedBox(
+        seatWidth,
+        0.20,
+        0.70,
+        0.055,
+        seatVelvetMat,
+      );
+
+      cushion.position.set(
+        0,
+        0.43,
+        0,
+      );
+
+      seatGroup.add(cushion);
+
+      // -------------------------------------------------------
+      // 2. FRONT BOLSTER
+      // -------------------------------------------------------
+
+      const frontBolster = createRoundedBox(
+        seatWidth,
+        0.075,
+        0.10,
+        0.035,
+        seatVelvetMat,
+      );
+
+      frontBolster.position.set(
+        0,
+        0.375,
+        -0.235,
+      );
+
+      seatGroup.add(frontBolster);
+
+      // -------------------------------------------------------
+      // 3. LARGE ROUNDED BACKREST
+      // -------------------------------------------------------
+
+      const backrest = createRoundedBox(
+        seatWidth + 0.10,
+        1.15,
+        0.20,
+        0.075,
+        seatVelvetMat,
+      );
+
+      backrest.position.set(
+        0,
+        0.995,
+        0.225,
+      );
+
+      backrest.rotation.x = -0.10;
+
+      seatGroup.add(backrest);
+
+      // -------------------------------------------------------
+      // 4. LEFT ARMREST
+      // -------------------------------------------------------
 
       const createArmrest = (xPos: number) => {
         const armGroup = new THREE.Group();
-        armGroup.position.set(xPos, 0.52, -0.04);
-        armGroup.add(new THREE.Mesh(armrestMetalGeo, metalMat));
-        const woodCap = new THREE.Mesh(armrestWoodCapGeo, woodMat);
-        woodCap.position.set(0, 0.16, 0);
-        armGroup.add(woodCap);
+
+        armGroup.position.set(
+          xPos,
+          0,
+          0,
+        );
+
+        // Vertical walnut side panel
+        const panel = createRoundedBox(
+          0.11,
+          0.62,
+          0.58,
+          0.025,
+          walnutMat,
+        );
+
+        panel.position.set(
+          0,
+          0.50,
+          0,
+        );
+
+        armGroup.add(panel);
+
+        // Rounded top cap
+        const topCap = createRoundedBox(
+          0.075,
+          0.045,
+          0.50,
+          0.015,
+          walnutMat,
+        );
+
+        topCap.position.set(
+          0,
+          0.825,
+          0.02,
+        );
+
+        armGroup.add(topCap);
+
+        // Thin brass trim
+        const brassTrim = new THREE.Mesh(
+          new THREE.BoxGeometry(
+            0.012,
+            0.028,
+            0.48,
+          ),
+          brassMat,
+        );
+
+        brassTrim.position.set(
+          0.035,
+          0.825,
+          0.02,
+        );
+
+        brassTrim.castShadow = true;
+
+        armGroup.add(brassTrim);
+
         return armGroup;
       };
 
-      seatGroup.add(createArmrest(-0.29));
-      seatGroup.add(createArmrest(0.29));
+      // Slightly wider armrest spacing because the seat itself
+      // has been increased.
+      const armX = seatWidth / 2 + 0.055;
 
-      const leg = new THREE.Mesh(legGeo, metalMat);
-      leg.position.set(0, 0.19, 0);
-      seatGroup.add(leg);
+      seatGroup.add(createArmrest(-armX));
+      seatGroup.add(createArmrest(armX));
 
-      if (seat.number === 1 || seat.number === 14 || seat.number === 15) {
+      // -------------------------------------------------------
+      // 5. CENTRAL SUPPORT
+      // -------------------------------------------------------
+
+      const support = new THREE.Mesh(
+        new THREE.CylinderGeometry(
+          0.035,
+          0.045,
+          0.36,
+          8,
+        ),
+        darkMetalMat,
+      );
+
+      support.position.set(
+        0,
+        0.20,
+        0,
+      );
+
+      support.castShadow = true;
+
+      seatGroup.add(support);
+
+      // -------------------------------------------------------
+      // 6. AISLE-END WOOD PANEL + BLUE LED
+      //
+      // Preserve the existing special treatment for aisle seats.
+      // -------------------------------------------------------
+
+      if (seat.number === 1 || seat.number === 7) {
         const isLeftAisle = seat.number === 1;
-        const endPanel = new THREE.Mesh(aisleEndPanelGeo, woodMat);
-        endPanel.position.set(isLeftAisle ? -0.32 : 0.32, 0.52, -0.04);
+
+        const endPanel = createRoundedBox(
+          0.11,
+          0.65,
+          0.52,
+          0.025,
+          walnutMat,
+        );
+
+        endPanel.position.set(
+          isLeftAisle ? -0.36 : 0.36,
+          0.52,
+          -0.04,
+        );
+
         seatGroup.add(endPanel);
 
-        const led = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.02, 8), markerLedMat);
-        led.position.set(isLeftAisle ? -0.37 : 0.37, 0.65, 0.1);
-        led.rotation.z = Math.PI / 2;
+        // Small blue aisle indicator
+        const led = new THREE.Mesh(
+          new THREE.BoxGeometry(
+            0.012,
+            0.035,
+            0.055,
+          ),
+          ledMat,
+        );
+
+        led.position.set(
+          isLeftAisle ? -0.405 : 0.405,
+          0.66,
+          0.10,
+        );
+
         seatGroup.add(led);
       }
 
+      // -------------------------------------------------------
+      // Add seat to scene and preserve existing seat map
+      // -------------------------------------------------------
+
       this.scene.add(seatGroup);
-      this.seatMeshes.set(seat.id, seatGroup);
+
+      this.seatMeshes.set(
+        seat.id,
+        seatGroup,
+      );
     });
 
-    // Active Selection Beacon Ring
-    const activeRingGeo = new THREE.RingGeometry(0.4, 0.55, 32);
+    // ---------------------------------------------------------
+    // ACTIVE SELECTION BEACON
+    // Keep this exactly as part of the existing POV system.
+    // ---------------------------------------------------------
+
+    const activeRingGeo = new THREE.RingGeometry(
+      0.4,
+      0.55,
+      32,
+    );
+
     const activeRingMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       side: THREE.DoubleSide,
     });
-    this.activeBeaconRing = new THREE.Mesh(activeRingGeo, activeRingMat);
+
+    this.activeBeaconRing = new THREE.Mesh(
+      activeRingGeo,
+      activeRingMat,
+    );
+
     this.activeBeaconRing.rotation.x = -Math.PI / 2;
-    this.activeBeaconRing.position.set(0, 0.05, 0);
+
+    this.activeBeaconRing.position.set(
+      0,
+      0.05,
+      0,
+    );
+
     this.scene.add(this.activeBeaconRing);
 
     this.updateActivePovVisual(this.currentPov);
@@ -835,7 +1405,7 @@ export class AuditoriumScene {
 
       gsap.to(this.camera.position, {
         x: 0,
-        y: 16.0,
+        y: 13.0,
         z: 26,
         duration: 1.6,
         ease: 'power2.inOut',

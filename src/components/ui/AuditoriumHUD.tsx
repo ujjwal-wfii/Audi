@@ -34,7 +34,7 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
   onViewModeChange,
 }) => {
   return (
-    <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-between p-2 sm:p-3 md:p-6 select-none">
+    <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-between pt-1 px-2 pb-2 sm:pt-2 sm:px-3 sm:pb-3 md:pt-3 md:px-6 md:pb-6 select-none">
       {/* -------------------------------------------------------------
           TOP BAR (VISIBLE IN SEATED, OVERVIEW & POV MODES)
       ------------------------------------------------------------- */}
@@ -104,7 +104,7 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
             </div> */}
 
             {/* Hall Overview Button */}
-            <button
+            {/* <button
               onClick={() => onViewModeChange('OVERVIEW')}
               className={`px-2.5 sm:px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 border transition-all ${sceneState === 'OVERVIEW'
                 ? 'bg-indigo-600 border-indigo-400 text-white shadow-md'
@@ -113,7 +113,7 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
             >
               <Layers className="w-3.5 h-3.5" />
               Hall Overview
-            </button>
+            </button> */}
 
             {/* Lighting Mode Selector */}
             <div className="hidden md:flex items-center bg-slate-800/80 p-1 rounded-xl border border-slate-700/70">
@@ -130,7 +130,7 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
                 title="House Lights On"
                 className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-700/80 transition-all flex items-center gap-1"
               >
-                House
+                Lights ON
               </button>
               {/* <button
                 onClick={() => onLightingChange('CYBER')}
@@ -219,14 +219,30 @@ export const AuditoriumHUD: React.FC<AuditoriumHUDProps> = ({
             </button>
 
             <button
-              onClick={() => onPovChange('CENTER')}
-              className={`px-2 sm:px-5 py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition-all ${currentPov === 'CENTER'
+              onClick={() => {
+                if (sceneState === 'OVERVIEW') {
+                  onViewModeChange('POV');
+                  onPovChange('CENTER');
+                } else {
+                  onViewModeChange('OVERVIEW');
+                }
+              }}
+              className={`px-2 sm:px-5 py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition-all ${sceneState === 'OVERVIEW' || currentPov === 'CENTER'
                 ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/30 scale-105'
                 : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300'
                 }`}
             >
-              <Star className="w-3.5 h-3.5 fill-current text-amber-300" />
-              Center
+              {sceneState === 'OVERVIEW' ? (
+                <>
+                  <Star className="w-3.5 h-3.5 fill-current text-amber-300" />
+                  Center
+                </>
+              ) : (
+                <>
+                  <Layers className="w-3.5 h-3.5" />
+                  Hall Overview
+                </>
+              )}
             </button>
 
             <button
