@@ -29,7 +29,7 @@ export const POV_PRESETS: Record<PovPosition, PovConfig> = {
     name: 'Left VIP Seat POV',
     badge: 'Left VIP • 90% Screen Immersion',
     description: 'Direct straight-on frontal presentation view with 90% screen viewport occupancy',
-    position: new THREE.Vector3(-3.2, 7.0, 4.2),
+    position: new THREE.Vector3(-3.2, 7.0, 15.5),
     lookAt: new THREE.Vector3(0.4, 7.0, -8.5),
     associatedSeatId: 'C-3',
   },
@@ -38,7 +38,7 @@ export const POV_PRESETS: Record<PovPosition, PovConfig> = {
     name: 'Center VIP Sweet-Spot POV',
     badge: 'Center Sweet-Spot • 90% Screen Immersion',
     description: 'Prime central direct presentation view with 90% screen viewport occupancy',
-    position: new THREE.Vector3(0, 7.0, 3.8),
+    position: new THREE.Vector3(0, 7.0, 15.2),
     lookAt: new THREE.Vector3(0, 7.0, -8.5),
     associatedSeatId: 'C-10',
   },
@@ -47,7 +47,7 @@ export const POV_PRESETS: Record<PovPosition, PovConfig> = {
     name: 'Right VIP Seat POV',
     badge: 'Right VIP • 90% Screen Immersion',
     description: 'Direct straight-on frontal presentation view with 90% screen viewport occupancy',
-    position: new THREE.Vector3(3.2, 7.0, 4.2),
+    position: new THREE.Vector3(3.2, 7.0, 15.5),
     lookAt: new THREE.Vector3(-0.4, 7.0, -8.5),
     associatedSeatId: 'C-18',
   },
@@ -1274,79 +1274,169 @@ export class AuditoriumScene {
   }
 
   /* -------------------------------------------------------------
-     CINEMATIC FLOW: GATE OPEN & ENTER AUDITORIUM (90% SCREEN IMMERSION)
-  ------------------------------------------------------------- */
-  public enterAuditorium(targetPov: PovPosition = 'CENTER', onComplete?: () => void) {
+    CINEMATIC FLOW: GATE OPEN & CENTER-AISLE ENTRY
+    ------------------------------------------------------------- */
+  public enterAuditorium(
+    targetPov: PovPosition = 'CENTER',
+    onComplete?: () => void
+  ) {
     this.currentState = 'ENTERING';
     this.callbacks.onStateChange('ENTERING');
 
     this.currentPov = targetPov;
+
     const config = POV_PRESETS[targetPov];
+
+    const aisleStart = new THREE.Vector3(
+      0,
+      7.0,
+      20.0
+    );
+
+    const aisleTop = new THREE.Vector3(
+      0,
+      7.0,
+      17.5
+    );
+
+    // const aisleMiddle = new THREE.Vector3(
+    //   0,
+    //   7.0,
+    //   16.2
+    // );
+
+    // Final destination is the actual selected seat POV
+    const finalPosition = config.position;
 
     const tl = gsap.timeline({
       onComplete: () => {
         this.currentState = 'SEATED';
         this.callbacks.onStateChange('SEATED');
+
         this.updateActivePovVisual(targetPov);
         this.callbacks.onPovChange(targetPov);
-        if (onComplete) onComplete();
+
+        if (onComplete) {
+          onComplete();
+        }
       },
     });
 
-    // 1. Swing open doors
-    tl.to(this.leftDoorGroup.rotation, { y: Math.PI * 0.45, duration: 1.2, ease: 'power2.inOut' }, 0);
-    tl.to(this.rightDoorGroup.rotation, { y: -Math.PI * 0.45, duration: 1.2, ease: 'power2.inOut' }, 0);
+    // ---------------------------------------------------------
+    // 1. OPEN DOORS
+    // ---------------------------------------------------------
 
-    // 2. Camera Moves through doors
+    tl.to(
+      this.leftDoorGroup.rotation,
+      {
+        y: Math.PI * 0.45,
+        duration: 1.2,
+        ease: 'power2.inOut',
+      },
+      0
+    );
+
+    tl.to(
+      this.rightDoorGroup.rotation,
+      {
+        y: -Math.PI * 0.45,
+        duration: 1.2,
+        ease: 'power2.inOut',
+      },
+      0
+    );
+
+    // ---------------------------------------------------------
+    // 2. ENTER THROUGH DOORS
+    // ---------------------------------------------------------
+
     tl.to(
       this.camera.position,
       {
-        x: 0,
-        y: 3.5,
-        z: 20,
-        duration: 1.8,
-        ease: 'power1.inOut',
+        x: aisleStart.x,
+        y: aisleStart.y,
+        z: aisleStart.z,
+        duration: 1.4,
+        ease: 'power2.inOut',
       },
-      0.4
+      0.5
     );
 
-    // Look straight-on at presentation screen center
+    // Look toward the screen
     tl.to(
       this.currentLookAt,
       {
         x: config.lookAt.x,
         y: config.lookAt.y,
         z: config.lookAt.z,
-        duration: 2.0,
-        ease: 'power1.out',
-      },
-      0.4
-    );
-
-    // 3. Move smoothly down aisle
-    tl.to(
-      this.camera.position,
-      {
-        x: config.position.x * 0.5,
-        y: config.position.y,
-        z: config.position.z + 3.5,
-        duration: 1.8,
-        ease: 'power2.inOut',
-      },
-      2.0
-    );
-
-    // 4. Glide directly into target POV with 90% screen framing
-    tl.to(
-      this.camera.position,
-      {
-        x: config.position.x,
-        y: config.position.y,
-        z: config.position.z,
         duration: 1.4,
         ease: 'power2.out',
       },
-      3.6
+      0.5
+    );
+
+    // ---------------------------------------------------------
+    // 3. MOVE INTO TOP OF CENTER AISLE
+    // ---------------------------------------------------------
+
+    tl.to(
+      this.camera.position,
+      {
+        x: aisleTop.x,
+        y: aisleTop.y,
+        z: aisleTop.z,
+        duration: 1.2,
+        ease: 'power2.inOut',
+      },
+      1.9
+    );
+
+    // ---------------------------------------------------------
+    // 4. DESCEND THROUGH CENTER AISLE
+    // ---------------------------------------------------------
+
+    // tl.to(
+    //   this.camera.position,
+    //   {
+    //     x: aisleMiddle.x,
+    //     y: aisleMiddle.y,
+    //     z: aisleMiddle.z,
+    //     duration: 1.2,
+    //     ease: 'power2.inOut',
+    //   },
+    //   3.1
+    // );
+
+    // ---------------------------------------------------------
+    // 5. FINAL MOVE → CENTER SEATING POSITION
+    // ---------------------------------------------------------
+
+    tl.to(
+      this.camera.position,
+      {
+        x: finalPosition.x,
+        y: finalPosition.y,
+        z: finalPosition.z,
+        duration: 1.4,
+        ease: 'power2.out',
+      },
+      4.3
+    );
+
+    // ---------------------------------------------------------
+    // 6. FINAL LOOK AT SCREEN
+    // ---------------------------------------------------------
+
+    tl.to(
+      this.currentLookAt,
+      {
+        x: config.lookAt.x,
+        y: config.lookAt.y,
+        z: config.lookAt.z,
+        duration: 1.4,
+        ease: 'power2.inOut',
+      },
+      4.3
     );
   }
 
