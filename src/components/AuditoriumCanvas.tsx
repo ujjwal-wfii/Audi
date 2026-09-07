@@ -167,7 +167,7 @@ export const AuditoriumCanvas: React.FC = () => {
 			/>
 
 			{/* The iframe is projected onto the same screen plane used by Three.js. */}
-			{sceneState !== "LOBBY" && (
+			{/* {sceneState !== "LOBBY" && (
 				<div
 					ref={streamBoundsRef}
 					className="pointer-events-auto absolute z-10 overflow-hidden bg-black"
@@ -183,8 +183,27 @@ export const AuditoriumCanvas: React.FC = () => {
 						className="h-full w-full border-0"
 					/>
 				</div>
+			)} */}
+			{sceneState !== "LOBBY" && (
+				<div
+					ref={streamBoundsRef}
+					className="pointer-events-none absolute z-0 overflow-hidden bg-black"
+					style={{
+						transformOrigin: "center center",
+					}}
+				>
+					<iframe
+						ref={streamFrameRef}
+						title="Auditorium live stream"
+						src="https://www.youtube.com/embed/KIDah3KNmco?autoplay=1&playsinline=1&enablejsapi=1&rel=0"
+						frameBorder="0"
+						allow="autoplay; encrypted-media; picture-in-picture"
+						referrerPolicy="strict-origin-when-cross-origin"
+						allowFullScreen
+						className="block h-full w-full border-0"
+					/>
+				</div>
 			)}
-
 			{/* =========================================================
           AUDITORIUM HUD
       ========================================================= */}

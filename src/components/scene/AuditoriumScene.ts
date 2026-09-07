@@ -316,29 +316,49 @@ export class AuditoriumScene {
 		// this.screenMesh.position.set(0, 6.5, -8.5);
 		// this.screenMesh.rotation.y = Math.PI;
 		// this.scene.add(this.screenMesh);
+		// const screenWidth = 28;
+		// const screenHeight = 13;
+
+		// const screenGeo = new THREE.PlaneGeometry(screenWidth, screenHeight);
+
+		// const screenTexture = createKeynoteScreenTexture();
+		// // screenTexture.wrapS = THREE.RepeatWrapping;
+		// // screenTexture.repeat.set(1, 1);
+		// screenTexture.center.set(0.5, 0.5);
+		// screenTexture.needsUpdate = true;
+
+		// const screenMat = new THREE.MeshBasicMaterial({
+		// 	map: screenTexture,
+		// 	side: THREE.DoubleSide,
+		// });
+
+		// this.screenMesh = new THREE.Mesh(screenGeo, screenMat);
+
+		// // Vertical rectangular screen
+		// // Bottom = 0, top = 13
+		// this.screenMesh.position.set(0, screenHeight / 2, -8.5);
+
+		// this.screenMesh.rotation.y = 0;
+
+		// this.scene.add(this.screenMesh);
+
 		const screenWidth = 28;
 		const screenHeight = 13;
 
 		const screenGeo = new THREE.PlaneGeometry(screenWidth, screenHeight);
 
-		const screenTexture = createKeynoteScreenTexture();
-		// screenTexture.wrapS = THREE.RepeatWrapping;
-		// screenTexture.repeat.set(1, 1);
-		screenTexture.center.set(0.5, 0.5);
-		screenTexture.needsUpdate = true;
-
+		// The actual screen surface is now black.
+		// The HTML YouTube iframe will visually sit on top of it.
 		const screenMat = new THREE.MeshBasicMaterial({
-			map: screenTexture,
+			color: 0x050505,
 			side: THREE.DoubleSide,
 		});
 
 		this.screenMesh = new THREE.Mesh(screenGeo, screenMat);
 
-		// Vertical rectangular screen
-		// Bottom = 0, top = 13
 		this.screenMesh.position.set(0, screenHeight / 2, -8.5);
 
-		this.screenMesh.rotation.y = 0;
+		this.screenMesh.rotation.set(0, 0, 0);
 
 		this.scene.add(this.screenMesh);
 
@@ -1649,38 +1669,101 @@ export class AuditoriumScene {
 		this.renderer.render(this.scene, this.camera);
 	}
 
+	// private updateScreenBounds() {
+	// 	if (this.currentState === "LOBBY") return;
+
+	// 	const geometry = this.screenMesh.geometry as THREE.PlaneGeometry;
+	// 	const halfWidth = geometry.parameters.width / 2;
+	// 	const halfHeight = geometry.parameters.height / 2;
+	// 	const streamZOffset = 1;
+	// 	const projectedCorners = [
+	// 		new THREE.Vector3(-halfWidth, halfHeight, streamZOffset),
+	// 		new THREE.Vector3(halfWidth, halfHeight, streamZOffset),
+	// 		new THREE.Vector3(-halfWidth, -halfHeight, streamZOffset),
+	// 		new THREE.Vector3(halfWidth, -halfHeight, streamZOffset),
+	// 	].map((corner) => {
+	// 		this.screenMesh.localToWorld(corner);
+	// 		return corner.project(this.camera);
+	// 	});
+
+	// 	const width = this.container.clientWidth || window.innerWidth;
+	// 	const height = this.container.clientHeight || window.innerHeight;
+	// 	const xValues = projectedCorners.map(
+	// 		(point) => ((point.x + 1) / 2) * width,
+	// 	);
+	// 	const yValues = projectedCorners.map(
+	// 		(point) => ((1 - point.y) / 2) * height,
+	// 	);
+	// 	const left = Math.min(...xValues);
+	// 	const top = Math.min(...yValues);
+
+	// 	this.callbacks.onScreenBoundsChange?.({
+	// 		left,
+	// 		top,
+	// 		width: Math.max(...xValues) - left,
+	// 		height: Math.max(...yValues) - top,
+	// 	});
+	// }
 	private updateScreenBounds() {
 		if (this.currentState === "LOBBY") return;
+		if (!this.screenMesh) return;
 
 		const geometry = this.screenMesh.geometry as THREE.PlaneGeometry;
+
 		const halfWidth = geometry.parameters.width / 2;
+
 		const halfHeight = geometry.parameters.height / 2;
-		const projectedCorners = [
-			new THREE.Vector3(-halfWidth, halfHeight, 0),
-			new THREE.Vector3(halfWidth, halfHeight, 0),
-			new THREE.Vector3(-halfWidth, -halfHeight, 0),
-			new THREE.Vector3(halfWidth, -halfHeight, 0),
-		].map((corner) => {
+
+		// Slightly in front of the actual screen.
+		// This is ONLY used to calculate the HTML position.
+		const screenOffset = -0.02;
+
+		const corners = [
+			new THREE.Vector3(-halfWidth, halfHeight, screenOffset),
+
+			new THREE.Vector3(halfWidth, halfHeight, screenOffset),
+
+			new THREE.Vector3(-halfWidth, -halfHeight, screenOffset),
+
+			new THREE.Vector3(halfWidth, -halfHeight, screenOffset),
+		];
+
+		const projectedCorners = corners.map((corner) => {
 			this.screenMesh.localToWorld(corner);
+
 			return corner.project(this.camera);
 		});
 
 		const width = this.container.clientWidth || window.innerWidth;
+
 		const height = this.container.clientHeight || window.innerHeight;
+
 		const xValues = projectedCorners.map(
 			(point) => ((point.x + 1) / 2) * width,
 		);
+
 		const yValues = projectedCorners.map(
 			(point) => ((1 - point.y) / 2) * height,
 		);
+
 		const left = Math.min(...xValues);
+		const right = Math.max(...xValues);
+
 		const top = Math.min(...yValues);
+		const bottom = Math.max(...yValues);
+
+		const screenPixelWidth = right - left;
+		const screenPixelHeight = bottom - top;
+
+		// Small safety margin so the iframe doesn't
+		// visually spill outside the screen.
+		const padding = 1;
 
 		this.callbacks.onScreenBoundsChange?.({
-			left,
-			top,
-			width: Math.max(...xValues) - left,
-			height: Math.max(...yValues) - top,
+			left: left + padding,
+			top: top + padding,
+			width: Math.max(0, screenPixelWidth - padding * 2),
+			height: Math.max(0, screenPixelHeight - padding * 2),
 		});
 	}
 
