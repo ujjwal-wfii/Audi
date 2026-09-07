@@ -11,6 +11,7 @@ import {
   createMarbleTexture,
 } from '@/utils/textureGenerator';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 
 export interface PovConfig {
   id: PovPosition;
@@ -64,6 +65,9 @@ export class AuditoriumScene {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
+  private cssRenderer: CSS3DRenderer;
+  private youtubeScreen: CSS3DObject | null = null;
+  private presenterScreen: CSS3DObject | null = null;
   private callbacks: SceneCallbacks;
 
   // State
@@ -125,6 +129,28 @@ export class AuditoriumScene {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // -------------------------------------------------------------
+    // CSS3D RENDERER FOR YOUTUBE VIDEO ON THE 3D SCREEN
+    // -------------------------------------------------------------
+    this.cssRenderer = new CSS3DRenderer();
+
+    this.cssRenderer.setSize(width, height);
+
+    this.cssRenderer.domElement.style.position = 'absolute';
+    this.cssRenderer.domElement.style.top = '0';
+    this.cssRenderer.domElement.style.left = '0';
+    this.cssRenderer.domElement.style.width = '100%';
+    this.cssRenderer.domElement.style.height = '100%';
+    this.cssRenderer.domElement.style.pointerEvents = 'none';
+    this.cssRenderer.domElement.style.zIndex = '1';
+
+    this.container.appendChild(this.cssRenderer.domElement);
+
+    // Keep WebGL behind/alongside the CSS3D layer.
+    this.renderer.domElement.style.position = 'absolute';
+    this.renderer.domElement.style.top = '0';
+    this.renderer.domElement.style.left = '0';
+    this.renderer.domElement.style.zIndex = '0';
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     this.renderer.shadowMap.enabled = true;
@@ -206,6 +232,344 @@ export class AuditoriumScene {
     const lobbyLight = new THREE.PointLight(0x60a5fa, 3.0, 18);
     lobbyLight.position.set(0, 4.5, 36);
     this.scene.add(lobbyLight);
+  }
+  // -------------------------------------------------------------
+  // YOUTUBE LIVE VIDEO ON THE REAL 3D SCREEN
+  // -------------------------------------------------------------
+  private createYouTubeScreen() {
+    const screenWidth = 28;
+    const screenHeight = 13;
+
+
+    const youtubeVideoId = 'WjSNkTVHB88';
+
+    const wrapper = document.createElement('div');
+
+    // Large CSS canvas which gets scaled into Three.js world units.
+    const cssWidth = 1000;
+    const cssHeight = cssWidth * (screenHeight / screenWidth);
+
+    wrapper.style.width = `${cssWidth}px`;
+    wrapper.style.height = `${cssHeight}px`;
+    wrapper.style.background = '#000';
+    wrapper.style.overflow = 'hidden';
+    wrapper.style.border = '20px solid #5c3822';
+    wrapper.style.boxSizing = 'border-box';
+    wrapper.style.borderRadius = '18px';
+    wrapper.style.pointerEvents = 'none';
+
+    const iframe = document.createElement('iframe');
+
+    iframe.src =
+      `https://www.youtube.com/embed/${youtubeVideoId}` +
+      `?autoplay=1` +
+      `&controls=0` +
+      `&rel=0` +
+      `&modestbranding=1` +
+      `&playsinline=1`;
+
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = '0';
+    iframe.style.display = 'block';
+    iframe.style.pointerEvents = 'none';
+
+    iframe.setAttribute('allow', 'autoplay; encrypted-media');
+    iframe.setAttribute('allowfullscreen', '');
+
+    wrapper.appendChild(iframe);
+
+    const videoObject = new CSS3DObject(wrapper);
+
+    // Match the exact position of your existing physical screen.
+    videoObject.position.set(
+      0,
+      screenHeight / 2,
+      -8.49
+    );
+
+    videoObject.rotation.set(0, 0, 0);
+
+    // Convert the 1000px CSS element into the same
+    // 28 x 13 Three.js dimensions as the real screen.
+    const worldScale = screenWidth / cssWidth;
+
+    videoObject.scale.set(
+      worldScale,
+      worldScale,
+      worldScale
+    );
+
+    this.youtubeScreen = videoObject;
+
+    this.scene.add(videoObject);
+  }
+  private createPresenterScreen() {
+    // -------------------------------------------------------------
+    // VERTICAL PRESENTER SCREEN
+    // Replaces the podium
+    // -------------------------------------------------------------
+
+    const screenWidth = 4;
+    const screenHeight = 7.1111; // 9:16 portrait ratio
+    const stageHeight = 1.2;
+
+    // Replace this later with the second YouTube Live video ID
+    const presenterVideoId = 'yZrV-5vvZSE';
+
+    const wrapper = document.createElement('div');
+
+    // CSS3D uses pixel dimensions, then we scale it into world space.
+    const cssWidth = 500;
+    const cssHeight = 888.89;
+
+    wrapper.style.width = `${cssWidth}px`;
+    wrapper.style.height = `${cssHeight}px`;
+    wrapper.style.background = '#000';
+    wrapper.style.overflow = 'hidden';
+    wrapper.style.border = '20px solid #5c3822';
+    wrapper.style.boxSizing = 'border-box';
+    wrapper.style.borderRadius = '18px';
+    wrapper.style.pointerEvents = 'none';
+
+    const iframe = document.createElement('iframe');
+
+    iframe.src =
+      `https://www.youtube.com/embed/${presenterVideoId}` +
+      `?autoplay=1` +
+      `&controls=0` +
+      `&rel=0` +
+      `&modestbranding=1` +
+      `&playsinline=1`;
+
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = '0';
+    iframe.style.display = 'block';
+    iframe.style.pointerEvents = 'none';
+
+    iframe.setAttribute('allow', 'autoplay; encrypted-media');
+    iframe.setAttribute('allowfullscreen', '');
+
+    wrapper.appendChild(iframe);
+
+    const presenterScreen = new CSS3DObject(wrapper);
+
+    // -------------------------------------------------------------
+    // PODIUM LOCATION
+    // -------------------------------------------------------------
+    const podiumX = -11.0;
+    const podiumZ = -0.5;
+
+    // Bottom of screen sits directly on the stage
+    presenterScreen.position.set(
+      podiumX,
+      stageHeight + screenHeight / 2,
+      podiumZ
+    );
+
+    // Face the audience
+    presenterScreen.rotation.set(0, 0, 0);
+
+    // Convert CSS pixels into Three.js world units
+    const worldScale = screenWidth / cssWidth;
+
+    presenterScreen.scale.set(
+      worldScale,
+      worldScale,
+      worldScale
+    );
+
+    this.presenterScreen = presenterScreen;
+
+    this.scene.add(presenterScreen);
+  }
+  // -------------------------------------------------------------
+  // CHECK WHETHER THE 3D AUDITORIUM SCREEN IS VISIBLE
+  // -------------------------------------------------------------
+  private isScreenVisibleFromCamera(): boolean {
+    if (!this.screenMesh) return false;
+
+    const cameraPosition = this.camera.getWorldPosition(
+      new THREE.Vector3()
+    );
+
+    // Physical screen dimensions.
+    const screenWidth = 28;
+    const screenHeight = 13;
+
+    // Five points across the screen:
+    // center + four corners slightly inside the edges.
+    const screenPoints = [
+      new THREE.Vector3(0, 0, 0),
+
+      new THREE.Vector3(
+        -screenWidth * 0.42,
+        screenHeight * 0.42,
+        0
+      ),
+
+      new THREE.Vector3(
+        screenWidth * 0.42,
+        screenHeight * 0.42,
+        0
+      ),
+
+      new THREE.Vector3(
+        -screenWidth * 0.42,
+        -screenHeight * 0.42,
+        0
+      ),
+
+      new THREE.Vector3(
+        screenWidth * 0.42,
+        -screenHeight * 0.42,
+        0
+      ),
+    ];
+
+    let visiblePoints = 0;
+
+    for (const localPoint of screenPoints) {
+      // Convert the screen point from local coordinates
+      // into actual world coordinates.
+      const worldPoint = localPoint.clone();
+
+      this.screenMesh.localToWorld(worldPoint);
+
+      const direction = worldPoint
+        .clone()
+        .sub(cameraPosition)
+        .normalize();
+
+      const distanceToScreen =
+        cameraPosition.distanceTo(worldPoint);
+
+      this.raycaster.set(cameraPosition, direction);
+
+      const intersections =
+        this.raycaster.intersectObjects(
+          this.scene.children,
+          true
+        );
+
+      let blocked = false;
+
+      for (const hit of intersections) {
+        // Ignore the physical screen.
+        if (
+          hit.object === this.screenMesh ||
+          hit.object.parent === this.screenMesh
+        ) {
+          continue;
+        }
+
+        // Ignore anything that isn't actually closer
+        // than the screen point we're testing.
+        if (hit.distance < distanceToScreen - 0.1) {
+          blocked = true;
+          break;
+        }
+      }
+
+      if (!blocked) {
+        visiblePoints++;
+      }
+    }
+
+    // Show the video when at least 2 of the 5 screen points
+    // can actually be seen by the camera.
+    return visiblePoints >= 2;
+  }
+  // -------------------------------------------------------------
+  // CHECK WHETHER THE VERTICAL PRESENTER SCREEN IS VISIBLE
+  // -------------------------------------------------------------
+  private isPresenterScreenVisibleFromCamera(): boolean {
+    if (!this.presenterScreen) return false;
+
+    const cameraPosition = this.camera.getWorldPosition(
+      new THREE.Vector3()
+    );
+
+    // Vertical presenter screen dimensions.
+    const screenWidth = 5;
+    const screenHeight = 8.8889;
+
+    // Center + four points slightly inside the edges.
+    const screenPoints = [
+      new THREE.Vector3(0, 0, 0),
+
+      new THREE.Vector3(
+        -screenWidth * 0.42,
+        screenHeight * 0.42,
+        0
+      ),
+
+      new THREE.Vector3(
+        screenWidth * 0.42,
+        screenHeight * 0.42,
+        0
+      ),
+
+      new THREE.Vector3(
+        -screenWidth * 0.42,
+        -screenHeight * 0.42,
+        0
+      ),
+
+      new THREE.Vector3(
+        screenWidth * 0.42,
+        -screenHeight * 0.42,
+        0
+      ),
+    ];
+
+    let visiblePoints = 0;
+
+    for (const localPoint of screenPoints) {
+      const worldPoint = localPoint.clone();
+
+      this.presenterScreen.localToWorld(worldPoint);
+
+      const direction = worldPoint
+        .clone()
+        .sub(cameraPosition)
+        .normalize();
+
+      const distanceToScreen =
+        cameraPosition.distanceTo(worldPoint);
+
+      this.raycaster.set(cameraPosition, direction);
+
+      const intersections =
+        this.raycaster.intersectObjects(
+          this.scene.children,
+          true
+        );
+
+      let blocked = false;
+
+      for (const hit of intersections) {
+        // Ignore the presenter screen itself.
+        if (
+          hit.object === this.presenterScreen ||
+          hit.object.parent === this.presenterScreen
+        ) {
+          continue;
+        }
+
+        if (hit.distance < distanceToScreen - 0.1) {
+          blocked = true;
+          break;
+        }
+      }
+
+      if (!blocked) {
+        visiblePoints++;
+      }
+    }
+
+    return visiblePoints >= 2;
   }
 
   /* -------------------------------------------------------------
@@ -298,6 +662,8 @@ export class AuditoriumScene {
 
     this.scene.add(this.screenMesh);
 
+    this.createYouTubeScreen();
+
     const backWallZ = -11;
     const backWallMat = new THREE.MeshStandardMaterial({
       color: 0xD6C7B0,
@@ -319,41 +685,28 @@ export class AuditoriumScene {
       this.scene.add(wing);
     }
 
-    // // Screen Bezel Outer Frame
-    // const frameMat = new THREE.MeshStandardMaterial({
-    //   color: 0x050811,
-    //   roughness: 0.4,
-    //   metalness: 0.6,
-    // });
-    // const frameMesh = new THREE.Mesh(
-    //   new THREE.CylinderGeometry(screenRadius + 0.12, screenRadius + 0.12, screenHeight + 0.35, 64, 1, true, -screenArc / 2 - 0.01, screenArc + 0.02),
-    //   frameMat
-    // );
-    // frameMesh.position.copy(this.screenMesh.position);
-    // frameMesh.rotation.y = Math.PI;
-    // this.scene.add(frameMesh);
-
     // 3. Stage Speaker Podium / Lectern
-    const loader = new GLTFLoader();
-    loader.load('/models/Untitled.glb', (gltf) => {
-      const podium = gltf.scene;
-      podium.scale.setScalar(0.8);
+    // const loader = new GLTFLoader();
+    // loader.load('/models/Untitled.glb', (gltf) => {
+    //   const podium = gltf.scene;
+    //   podium.scale.setScalar(0.8);
 
-      podium.position.set(-9.5, stageHeight, -0.5);
-      podium.rotation.y = 1;
+    //   podium.position.set(-9.5, stageHeight, -0.5);
+    //   podium.rotation.y = 1;
 
-      podium.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0x5c3822,
-            roughness: 0.45,
-            metalness: 0.05,
-          });
-        }
-      });
+    //   podium.traverse((child) => {
+    //     if (child instanceof THREE.Mesh) {
+    //       child.material = new THREE.MeshStandardMaterial({
+    //         color: 0x5c3822,
+    //         roughness: 0.45,
+    //         metalness: 0.05,
+    //       });
+    //     }
+    //   });
 
-      this.scene.add(podium);
-    });
+    //   this.scene.add(podium);
+    // });
+    this.createPresenterScreen();
     // =========================
     // Plants beside the screen
     // =========================
@@ -1644,6 +1997,7 @@ export class AuditoriumScene {
       }
     }
     this.renderer.setSize(width, height);
+    this.cssRenderer.setSize(width, height);
 
     // Keep the scene sharp on phones/tablets with
     // high-density displays without excessive GPU usage.
@@ -1657,6 +2011,7 @@ export class AuditoriumScene {
   ------------------------------------------------------------- */
   private animate() {
     if (this.isDestroyed) return;
+
     this.animationFrameId = requestAnimationFrame(this.animate);
 
     const lookTarget = new THREE.Vector3(
@@ -1671,7 +2026,28 @@ export class AuditoriumScene {
       this.activeBeaconRing.rotation.z += 0.015;
     }
 
+    // -------------------------------------------------------------
+    // YOUTUBE SCREEN OCCLUSION
+    // -------------------------------------------------------------
+    if (this.youtubeScreen) {
+      if (this.currentState === 'LOBBY') {
+        this.youtubeScreen.visible = false;
+      } else {
+        this.youtubeScreen.visible =
+          this.isScreenVisibleFromCamera();
+      }
+    }
+    if (this.presenterScreen) {
+      if (this.currentState === 'LOBBY') {
+        this.presenterScreen.visible = false;
+      } else {
+        this.presenterScreen.visible =
+          this.isPresenterScreenVisibleFromCamera();
+      }
+    }
+
     this.renderer.render(this.scene, this.camera);
+    this.cssRenderer.render(this.scene, this.camera);
   }
 
   public destroy() {
@@ -1687,9 +2063,18 @@ export class AuditoriumScene {
       this.resizeObserver = null;
     }
 
-    if (this.renderer.domElement.parentNode) {
-      this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+    if (this.renderer.domElement.parentElement) {
+      this.renderer.domElement.parentElement.removeChild(
+        this.renderer.domElement
+      );
     }
+
+    if (this.cssRenderer?.domElement.parentElement) {
+      this.cssRenderer.domElement.parentElement.removeChild(
+        this.cssRenderer.domElement
+      );
+    }
+
     this.renderer.dispose();
   }
 }
