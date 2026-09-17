@@ -78,7 +78,8 @@ export class AuditoriumScene {
 	private renderer: THREE.WebGLRenderer;
 	private cssRenderer: CSS3DRenderer;
 	private youtubeScreen: CSS3DObject | null = null;
-	private presenterScreen: CSS3DObject | null = null;
+	// Independent presenter screens. Each can load different content.
+	private presenterScreens: Map<"LEFT" | "RIGHT", CSS3DObject> = new Map();
 	private callbacks: SceneCallbacks;
 
 	// State
@@ -429,38 +430,60 @@ export class AuditoriumScene {
 
 		this.youtubeScreen.visible = false;
 	}
-	// STOP PRESENTER YOUTUBE VIDEO COMPLETELY
 	// -------------------------------------------------------------
-	private stopPresenterVideo() {
-		if (!this.presenterScreen) return;
+	// PRESENTER SCREENS
+	// LEFT and RIGHT are independent so different content can be
+	// loaded on each screen later without changing the architecture.
+	// -------------------------------------------------------------
 
-		const wrapper = this.presenterScreen.element;
-		const iframe = wrapper.querySelector("iframe");
-
-		if (iframe) {
-			iframe.src = "about:blank";
-			iframe.remove();
+	private readonly presenterScreenConfig: Record<
+		"LEFT" | "RIGHT",
+		{
+			videoId: string;
+			x: number;
+			y?: number;
+			z: number;
 		}
+	> = {
+		LEFT: {
+			videoId: "yZrV-5vvZSE",
+			x: -11.0,
+			z: -0.5,
+		},
+		RIGHT: {
+			// Keep this the same for now. Change independently later.
+			videoId: "yZrV-5vvZSE",
+			x: 11.0,
+			z: -0.5,
+		},
+	};
 
-		this.presenterScreen.visible = false;
+	private stopPresenterVideo() {
+		this.presenterScreens.forEach((screen) => {
+			const iframe = screen.element.querySelector("iframe");
+
+			if (iframe) {
+				iframe.src = "about:blank";
+				iframe.remove();
+			}
+
+			screen.visible = false;
+		});
+
+		this.presenterScreens.clear();
 	}
 
-	private createPresenterScreen() {
-		// -------------------------------------------------------------
-		// VERTICAL PRESENTER SCREEN
-		// Replaces the podium
-		// -------------------------------------------------------------
-
+	private createPresenterScreen(
+		side: "LEFT" | "RIGHT",
+		videoId = this.presenterScreenConfig[side].videoId,
+	) {
 		const screenWidth = 4;
-		const screenHeight = 7.1111; // 9:16 portrait ratio
+		const screenHeight = 7.1111;
 		const stageHeight = 1.2;
-
-		// Replace this later with the second YouTube Live video ID
-		const presenterVideoId = "yZrV-5vvZSE";
+		const config = this.presenterScreenConfig[side];
 
 		const wrapper = document.createElement("div");
 
-		// CSS3D uses pixel dimensions, then we scale it into world space.
 		const cssWidth = 500;
 		const cssHeight = 888.89;
 
@@ -476,7 +499,7 @@ export class AuditoriumScene {
 		const iframe = document.createElement("iframe");
 
 		iframe.src =
-			`https://www.youtube.com/embed/${presenterVideoId}` +
+			`https://www.youtube.com/embed/${videoId}` +
 			`?autoplay=1` +
 			`&controls=0` +
 			`&rel=0` +
@@ -498,30 +521,28 @@ export class AuditoriumScene {
 
 		const presenterScreen = new CSS3DObject(wrapper);
 
-		// -------------------------------------------------------------
-		// PODIUM LOCATION
-		// -------------------------------------------------------------
-		const podiumX = -11.0;
-		const podiumZ = -0.5;
-
-		// Bottom of screen sits directly on the stage
 		presenterScreen.position.set(
-			podiumX,
+			config.x,
 			stageHeight + screenHeight / 2,
-			podiumZ,
+			config.z,
 		);
 
-		// Face the audience
 		presenterScreen.rotation.set(0, 0, 0);
 
-		// Convert CSS pixels into Three.js world units
 		const worldScale = screenWidth / cssWidth;
-
 		presenterScreen.scale.set(worldScale, worldScale, worldScale);
+		presenterScreen.visible = false;
 
-		this.presenterScreen = presenterScreen;
-
+		this.presenterScreens.set(side, presenterScreen);
 		this.scene.add(presenterScreen);
+
+		return presenterScreen;
+	}
+
+	private createAllPresenterScreens() {
+		this.stopPresenterVideo();
+		this.createPresenterScreen("LEFT");
+		this.createPresenterScreen("RIGHT");
 	}
 
 	private addScreenOccluder(object: THREE.Object3D) {
@@ -591,29 +612,23 @@ export class AuditoriumScene {
 		return false;
 	}
 	// -------------------------------------------------------------
-	// CHECK WHETHER THE VERTICAL PRESENTER SCREEN IS VISIBLE
 	// -------------------------------------------------------------
-	private isPresenterScreenVisibleFromCamera(): boolean {
-		if (!this.presenterScreen) return false;
-
+	// CHECK WHETHER A VERTICAL PRESENTER SCREEN IS VISIBLE
+	// Each screen is checked independently.
+	// -------------------------------------------------------------
+	private isPresenterScreenVisibleFromCamera(screen: CSS3DObject): boolean {
 		const cameraPosition = this.camera.getWorldPosition(
 			this.cameraWorldPosition,
 		);
 
-		// Vertical presenter screen dimensions.
-		const screenWidth = 5;
-		const screenHeight = 8.8889;
+		const screenWidth = 4;
+		const screenHeight = 7.1111;
 
-		// Center + four points slightly inside the edges.
 		const screenPoints = [
 			new THREE.Vector3(0, 0, 0),
-
 			new THREE.Vector3(-screenWidth * 0.42, screenHeight * 0.42, 0),
-
 			new THREE.Vector3(screenWidth * 0.42, screenHeight * 0.42, 0),
-
 			new THREE.Vector3(-screenWidth * 0.42, -screenHeight * 0.42, 0),
-
 			new THREE.Vector3(screenWidth * 0.42, -screenHeight * 0.42, 0),
 		];
 
@@ -621,8 +636,7 @@ export class AuditoriumScene {
 
 		for (const localPoint of screenPoints) {
 			const worldPoint = localPoint.clone();
-
-			this.presenterScreen.localToWorld(worldPoint);
+			screen.localToWorld(worldPoint);
 
 			const direction = worldPoint
 				.clone()
@@ -632,7 +646,6 @@ export class AuditoriumScene {
 			const distanceToScreen = cameraPosition.distanceTo(worldPoint);
 
 			this.screenRaycaster.set(cameraPosition, direction);
-
 			this.screenRaycaster.far = distanceToScreen - 0.1;
 
 			const intersections = this.screenRaycaster.intersectObjects(
@@ -640,33 +653,16 @@ export class AuditoriumScene {
 				false,
 			);
 
-			// let blocked = false;
-
-			// for (const hit of intersections) {
-			// 	// Ignore the presenter screen itself.
-			// 	if (
-			// 		hit.object === this.presenterScreen ||
-			// 		hit.object.parent === this.presenterScreen
-			// 	) {
-			// 		continue;
-			// 	}
-
-			// 	if (hit.distance < distanceToScreen - 0.1) {
-			// 		blocked = true;
-			// 		break;
-			// 	}
-			// }
-
-			// if (!blocked) {
-			// 	visiblePoints++;
-			// }
 			if (intersections.length === 0) {
 				visiblePoints++;
 			}
+
+			if (visiblePoints >= 2) return true;
 		}
 
-		return visiblePoints >= 2;
+		return false;
 	}
+
 	/* -------------------------------------------------------------
      STAGE & AUDITORIUM HALL (90% SCREEN VIEWPORT IMMERSION)
   ------------------------------------------------------------- */
@@ -1708,15 +1704,15 @@ export class AuditoriumScene {
 		this.areScreensRevealed = false;
 
 		this.createYouTubeScreen();
-		this.createPresenterScreen();
+		this.createAllPresenterScreens();
 
 		if (this.youtubeScreen) {
 			this.youtubeScreen.visible = false;
 		}
 
-		if (this.presenterScreen) {
-			this.presenterScreen.visible = false;
-		}
+		this.presenterScreens.forEach((screen) => {
+			screen.visible = false;
+		});
 
 		const config = POV_PRESETS[targetPov];
 
@@ -1881,9 +1877,9 @@ export class AuditoriumScene {
 					this.youtubeScreen.visible = true;
 				}
 
-				if (this.presenterScreen) {
-					this.presenterScreen.visible = true;
-				}
+				this.presenterScreens.forEach((screen) => {
+					screen.visible = true;
+				});
 			},
 			[],
 			3.2,
@@ -2192,9 +2188,9 @@ export class AuditoriumScene {
 				this.youtubeScreen.visible = false;
 			}
 
-			if (this.presenterScreen) {
-				this.presenterScreen.visible = false;
-			}
+			this.presenterScreens.forEach((screen) => {
+				screen.visible = false;
+			});
 
 			this.areScreensRevealed = false;
 			this.lastScreenVisibilityCheck = 0;
@@ -2206,21 +2202,21 @@ export class AuditoriumScene {
 					this.youtubeScreen.visible = false;
 				}
 
-				if (this.presenterScreen) {
-					this.presenterScreen.visible = false;
-				}
+				this.presenterScreens.forEach((screen) => {
+					screen.visible = false;
+				});
 			}
 		} else if (this.currentState === "SEATED") {
 			if (this.youtubeScreen) {
 				this.youtubeScreen.visible = true;
 			}
 
-			if (this.presenterScreen) {
-				this.presenterScreen.visible = true;
-			}
+			this.presenterScreens.forEach((screen) => {
+				screen.visible = true;
+			});
 
 			this.lastScreenVisibilityCheck = now;
-		} else if (this.youtubeScreen || this.presenterScreen) {
+		} else if (this.youtubeScreen || this.presenterScreens.size > 0) {
 			if (
 				now - this.lastScreenVisibilityCheck >=
 				this.screenVisibilityInterval
@@ -2232,10 +2228,10 @@ export class AuditoriumScene {
 						this.isScreenVisibleFromCamera();
 				}
 
-				if (this.presenterScreen) {
-					this.presenterScreen.visible =
-						this.isPresenterScreenVisibleFromCamera();
-				}
+				this.presenterScreens.forEach((screen) => {
+					screen.visible =
+						this.isPresenterScreenVisibleFromCamera(screen);
+				});
 			}
 		}
 
@@ -2250,7 +2246,6 @@ export class AuditoriumScene {
 		// -------------------------------------------------------------
 
 		this.cssRenderer.render(this.scene, this.camera);
-
 		// -------------------------------------------------------------
 		// CONTINUOUS ANIMATION
 		// -------------------------------------------------------------
