@@ -39,7 +39,10 @@ export async function updateSession(request: NextRequest) {
 	const pathname = request.nextUrl.pathname;
 
 	// Protect auditorium
-	if (pathname === "/" && !isAuthenticated) {
+	if (
+		(pathname === "/" && !isAuthenticated) ||
+		(pathname === "/feedback" && !isAuthenticated)
+	) {
 		const loginUrl = request.nextUrl.clone();
 		loginUrl.pathname = "/login";
 
