@@ -135,17 +135,27 @@ export function FeedbackWall({
 	}
 
 	return (
-		<section className="mx-auto w-full max-w-6xl px-4">
-			<div className="overflow-hidden rounded-2xl bg-white shadow-note-md">
-				<div className="wall-scrollbar overflow-x-auto">
-					<div className="min-w-[640px]">
+		<section
+			className="h-dvh w-full overflow-hidden"
+			style={{
+				height: "100vh", // fallback for browsers without dvh support
+				paddingTop: "env(safe-area-inset-top, 0px)",
+				paddingLeft: "env(safe-area-inset-left, 0px)",
+				paddingRight: "env(safe-area-inset-right, 0px)",
+			}}
+		>
+			<div className="flex h-full w-full flex-col overflow-hidden bg-white">
+				{/* Wall */}
+				<div className="wall-scrollbar min-h-0 flex-1 overflow-auto overscroll-contain">
+					<div className="h-full w-full">
 						{loading ? (
-							<div className="flex aspect-[16/9] w-full items-center justify-center text-slate-400">
+							<div className="flex h-full w-full items-center justify-center text-slate-400">
 								Loading wall…
 							</div>
 						) : loadError ? (
-							<div className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-3 text-slate-500">
+							<div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-500">
 								<p>{loadError}</p>
+
 								<button
 									type="button"
 									onClick={loadNotes}
@@ -155,21 +165,33 @@ export function FeedbackWall({
 								</button>
 							</div>
 						) : (
-							<WallBackground wallImage={wallImage}>
-								<FeedbackNotesLayer
-									notes={notes}
-									onOpenNote={(n) => setActiveNoteId(n.id)}
-								/>
-							</WallBackground>
+							<div className="h-full w-full">
+								<WallBackground wallImage={wallImage}>
+									<FeedbackNotesLayer
+										notes={notes}
+										onOpenNote={(n) =>
+											setActiveNoteId(n.id)
+										}
+									/>
+								</WallBackground>
+							</div>
 						)}
 					</div>
 				</div>
 
-				<div className="flex items-center justify-between gap-4 border-t border-stone-100 bg-stone-50 px-5 py-4">
+				{/* Bottom bar */}
+				<div
+					className="flex shrink-0 items-center justify-between gap-4 border-t border-stone-100 bg-stone-50 px-5 py-3"
+					style={{
+						paddingBottom:
+							"max(0.75rem, env(safe-area-inset-bottom, 0px))",
+					}}
+				>
 					<p className="text-sm text-slate-500">
 						{notes.length} {notes.length === 1 ? "note" : "notes"}{" "}
 						on the wall
 					</p>
+
 					<button
 						type="button"
 						onClick={() => {
@@ -178,14 +200,21 @@ export function FeedbackWall({
 						}}
 						className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
 					>
-						<span aria-hidden>+</span> Leave Feedback
+						<span aria-hidden>+</span>
+						Leave Feedback
 					</button>
 				</div>
 			</div>
 
+			{/* Feedback form */}
 			{formOpen && (
 				<div
-					className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+					className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8 sm:items-center"
+					style={{
+						paddingTop: "max(2rem, env(safe-area-inset-top, 0px))",
+						paddingBottom:
+							"max(2rem, env(safe-area-inset-bottom, 0px))",
+					}}
 					onClick={() => !formSubmitting && setFormOpen(false)}
 				>
 					<div
@@ -198,6 +227,7 @@ export function FeedbackWall({
 						<h2 className="font-display text-lg font-semibold text-slate-900">
 							Leave feedback
 						</h2>
+
 						<div className="mt-4">
 							<FeedbackForm
 								maxLength={maxMessageLength}
@@ -211,6 +241,7 @@ export function FeedbackWall({
 				</div>
 			)}
 
+			{/* Note dialog */}
 			{activeNote && (
 				<FeedbackDialog
 					feedback={activeNote}

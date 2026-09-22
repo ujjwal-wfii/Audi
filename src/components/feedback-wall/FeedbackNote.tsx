@@ -27,7 +27,6 @@ const TAPE_POSITION_CLASSES: Record<
  */
 export function FeedbackNote({ feedback, onOpen }: FeedbackNoteProps) {
 	const { visual } = feedback;
-
 	const shadowClass =
 		visual.shadowStrength > 0.65
 			? "shadow-note-lg"
