@@ -2,12 +2,14 @@
 
 import { RoundedBox, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { createIdleScreenTexture } from "./IdleScreenTexture";
 
 interface SelfieBoothModelProps {
-	onTakeSelfie: () => void;
+	onAction: () => void;
+	actionLabel: string;
+	actionDisabled: boolean;
 	cameraTexture?: THREE.Texture | null; // was THREE.VideoTexture | null
 }
 /* ---------------------------------------------------------------------- */
@@ -44,12 +46,9 @@ function RoundedPanel({
 /* ---------------------------------------------------------------------- */
 
 /*
- * This is intentionally a FLAT front-facing surface.
- *
- * The surrounding bezel remains a real 3D RoundedBox.
- *
- * This prevents the VideoTexture from being mapped onto
- * the multiple faces of a RoundedBox.
+ * Keep the live image on a flat surface. The extruded bezel has an actual
+ * opening, so this plane sits behind its front edge and reads as a recessed
+ * display instead of a texture laid over the booth geometry.
  */
 function CameraScreen({
 	texture,
@@ -58,156 +57,117 @@ function CameraScreen({
 	texture?: THREE.Texture | null; // was THREE.VideoTexture | null
 	dotTexture: THREE.Texture;
 }) {
-	const geometry = useMemo(() => {
-		const width = 5.92;
-		const height = 4.92;
-
-		return new THREE.PlaneGeometry(width, height);
-	}, []);
-
-	useEffect(() => {
-		return () => {
-			geometry.dispose();
-		};
-	}, [geometry]);
-
 	return (
-		<RoundedBox
-			position={[0, 4.05, -0.14]}
-			args={[5.89, 4.9, 0.1]}
-			radius={0.25}
-			smoothness={8}
-			scale={[-1, 1, 1]}
-		>
+		<mesh position={[0, 4.05, -0.14]}>
+			<planeGeometry args={[5.92, 4.92]} />
 			<meshBasicMaterial
 				map={texture ?? dotTexture}
+				transparent
 				toneMapped={false}
 				side={THREE.FrontSide}
 			/>
-		</RoundedBox>
+		</mesh>
 	);
 }
 
-/* ---------------------------------------------------------------------- */
-/* Icon Chip                                                               */
-/* ---------------------------------------------------------------------- */
+function createRoundedFrameShape(
+	width: number,
+	height: number,
+	radius: number,
+	clockwise = false,
+) {
+	const path = clockwise ? new THREE.Path() : new THREE.Shape();
+	const halfWidth = width / 2;
+	const halfHeight = height / 2;
+	const r = Math.min(radius, halfWidth, halfHeight);
 
-function IconChip({
-	position,
-	bg,
-	glyph,
-	glyphColor,
-	size = 0.58,
-}: {
-	position: [number, number, number];
-	bg: string;
-	glyph: string;
-	glyphColor: string;
-	size?: number;
-}) {
-	return (
-		<group position={position}>
-			<RoundedBox
-				args={[size, size, 0.12]}
-				radius={size * 0.3}
-				smoothness={4}
-			>
-				<meshStandardMaterial color={bg} roughness={0.35} />
-			</RoundedBox>
-
-			<Text
-				position={[0, 0, 0.09]}
-				fontSize={size * 0.55}
-				anchorX="center"
-				anchorY="middle"
-				color={glyphColor}
-			>
-				{glyph}
-			</Text>
-		</group>
-	);
+	if (!clockwise) {
+		path.moveTo(-halfWidth + r, -halfHeight);
+		path.lineTo(halfWidth - r, -halfHeight);
+		path.quadraticCurveTo(
+			halfWidth,
+			-halfHeight,
+			halfWidth,
+			-halfHeight + r,
+		);
+		path.lineTo(halfWidth, halfHeight - r);
+		path.quadraticCurveTo(halfWidth, halfHeight, halfWidth - r, halfHeight);
+		path.lineTo(-halfWidth + r, halfHeight);
+		path.quadraticCurveTo(
+			-halfWidth,
+			halfHeight,
+			-halfWidth,
+			halfHeight - r,
+		);
+		path.lineTo(-halfWidth, -halfHeight + r);
+		path.quadraticCurveTo(
+			-halfWidth,
+			-halfHeight,
+			-halfWidth + r,
+			-halfHeight,
+		);
+	} else {
+		path.moveTo(-halfWidth + r, -halfHeight);
+		path.quadraticCurveTo(
+			-halfWidth,
+			-halfHeight,
+			-halfWidth,
+			-halfHeight + r,
+		);
+		path.lineTo(-halfWidth, halfHeight - r);
+		path.quadraticCurveTo(
+			-halfWidth,
+			halfHeight,
+			-halfWidth + r,
+			halfHeight,
+		);
+		path.lineTo(halfWidth - r, halfHeight);
+		path.quadraticCurveTo(halfWidth, halfHeight, halfWidth, halfHeight - r);
+		path.lineTo(halfWidth, -halfHeight + r);
+		path.quadraticCurveTo(
+			halfWidth,
+			-halfHeight,
+			halfWidth - r,
+			-halfHeight,
+		);
+	}
+	path.closePath();
+	return path;
 }
 
-/* ---------------------------------------------------------------------- */
-/* Speech Badge                                                            */
-/* ---------------------------------------------------------------------- */
+function createScreenFrameGeometry() {
+	const shape = createRoundedFrameShape(6.2, 5.2, 0.42) as THREE.Shape;
+	const opening = createRoundedFrameShape(
+		5.94,
+		4.94,
+		0.3,
+		true,
+	) as THREE.Path;
+	shape.holes.push(opening);
 
-function SpeechBadge({
-	position,
-	lines,
-}: {
-	position: [number, number, number];
-	lines: string;
-}) {
-	return (
-		<group position={position}>
-			<RoundedBox args={[1.05, 0.72, 0.1]} radius={0.15} smoothness={4}>
-				<meshStandardMaterial color="#123b78" roughness={0.3} />
-			</RoundedBox>
-
-			{/* Bubble tail */}
-			<mesh position={[0, -0.4, 0]} rotation={[0, 0, Math.PI / 4]}>
-				<boxGeometry args={[0.16, 0.16, 0.08]} />
-
-				<meshStandardMaterial color="#123b78" roughness={0.3} />
-			</mesh>
-
-			<Text
-				position={[0, 0, 0.08]}
-				fontSize={0.115}
-				maxWidth={0.85}
-				textAlign="center"
-				anchorX="center"
-				anchorY="middle"
-				color="#ffffff"
-				letterSpacing={0.02}
-				lineHeight={1.15}
-			>
-				{lines}
-			</Text>
-		</group>
-	);
+	return new THREE.ExtrudeGeometry(shape, {
+		depth: 0.22,
+		bevelEnabled: true,
+		bevelSegments: 3,
+		bevelSize: 0.025,
+		bevelThickness: 0.02,
+		curveSegments: 12,
+	});
 }
 
-/* ---------------------------------------------------------------------- */
-/* Open Camera Button                                                      */
-/* ---------------------------------------------------------------------- */
+function ScreenBezel() {
+	const geometry = useMemo(createScreenFrameGeometry, []);
 
-function OpenCameraButton({
-	position,
-}: {
-	position: [number, number, number];
-}) {
+	useEffect(() => () => geometry.dispose(), [geometry]);
+
 	return (
-		<group position={position}>
-			<RoundedBox args={[0.95, 0.85, 0.12]} radius={0.16} smoothness={4}>
-				<meshStandardMaterial color="#ffffff" roughness={0.3} />
-			</RoundedBox>
-
-			{/* Camera glyph */}
-			<mesh position={[0, 0.18, 0.08]}>
-				<ringGeometry args={[0.1, 0.14, 32]} />
-
-				<meshStandardMaterial color="#123b78" />
-			</mesh>
-
-			<mesh position={[0, 0.18, 0.075]}>
-				<circleGeometry args={[0.07, 32]} />
-
-				<meshStandardMaterial color="#123b78" />
-			</mesh>
-
-			<Text
-				position={[0, -0.22, 0.08]}
-				fontSize={0.1}
-				anchorX="center"
-				anchorY="middle"
-				color="#123b78"
-				letterSpacing={0.02}
-			>
-				OPEN CAMERA
-			</Text>
-		</group>
+		<mesh geometry={geometry} position={[0, 4.05, -0.34]}>
+			<meshStandardMaterial
+				color="#182434"
+				roughness={0.24}
+				metalness={0.58}
+			/>
+		</mesh>
 	);
 }
 
@@ -225,32 +185,45 @@ function GlowFrame({ glowRef }: { glowRef: RefObject<THREE.Mesh | null> }) {
 	return (
 		<group>
 			{/* Top */}
-			<mesh ref={glowRef} position={[0, 6.75, -0.05]}>
-				<boxGeometry args={[6.55, 0.12, 0.1]} />
-
+			<RoundedBox
+				ref={glowRef}
+				position={[0, 6.75, -0.05]}
+				args={[6.55, 0.12, 0.1]}
+				radius={0.05}
+				smoothness={4}
+			>
 				<meshStandardMaterial {...materialProps} />
-			</mesh>
+			</RoundedBox>
 
 			{/* Left */}
-			<mesh position={[-3.25, 4.08, -0.05]}>
-				<boxGeometry args={[0.12, 5.35, 0.1]} />
-
+			<RoundedBox
+				position={[-3.25, 4.08, -0.05]}
+				args={[0.12, 5.35, 0.1]}
+				radius={0.05}
+				smoothness={4}
+			>
 				<meshStandardMaterial {...materialProps} />
-			</mesh>
+			</RoundedBox>
 
 			{/* Right */}
-			<mesh position={[3.25, 4.08, -0.05]}>
-				<boxGeometry args={[0.12, 5.35, 0.1]} />
-
+			<RoundedBox
+				position={[3.25, 4.08, -0.05]}
+				args={[0.12, 5.35, 0.1]}
+				radius={0.05}
+				smoothness={4}
+			>
 				<meshStandardMaterial {...materialProps} />
-			</mesh>
+			</RoundedBox>
 
 			{/* Bottom */}
-			<mesh position={[0, 1.41, -0.05]}>
-				<boxGeometry args={[6.55, 0.12, 0.1]} />
-
+			<RoundedBox
+				position={[0, 1.41, -0.05]}
+				args={[6.55, 0.12, 0.1]}
+				radius={0.05}
+				smoothness={4}
+			>
 				<meshStandardMaterial {...materialProps} />
-			</mesh>
+			</RoundedBox>
 		</group>
 	);
 }
@@ -259,59 +232,99 @@ function GlowFrame({ glowRef }: { glowRef: RefObject<THREE.Mesh | null> }) {
 /* Side Decorations                                                        */
 /* ---------------------------------------------------------------------- */
 
-function SideDecorations({
+function IconChip({
 	position,
-	badgeText,
-	emojiGlyph,
-	thirdGlyph,
+	background,
+	glyph,
+	color,
 }: {
 	position: [number, number, number];
-	badgeText: string;
-	emojiGlyph: string;
-	thirdGlyph: string;
+	background: string;
+	glyph: string;
+	color: string;
 }) {
 	return (
 		<group position={position}>
-			{/* Slim white backing */}
-			<RoundedBox args={[0.68, 5.0, 0.16]} radius={0.2} smoothness={6}>
-				<meshStandardMaterial color="#ffffff" roughness={0.25} />
+			<RoundedBox args={[0.56, 0.56, 0.12]} radius={0.16} smoothness={5}>
+				<meshStandardMaterial color={background} roughness={0.32} />
 			</RoundedBox>
-
-			<SpeechBadge position={[0, 2.22, 0.14]} lines={badgeText} />
-
-			<IconChip
-				position={[0, 1.28, 0.14]}
-				bg="#ffffff"
-				glyph="♥"
-				glyphColor="#ef3340"
-			/>
-
-			<IconChip
-				position={[0, 0.53, 0.14]}
-				bg="#168cff"
-				glyph="✓"
-				glyphColor="#ffffff"
-			/>
-
-			<IconChip
-				position={[0, -0.22, 0.14]}
-				bg="#ffd23f"
-				glyph={emojiGlyph}
-				glyphColor="#123b78"
-			/>
-
-			<IconChip
-				position={[0, -0.97, 0.14]}
-				bg="#ffffff"
-				glyph={thirdGlyph}
-				glyphColor="#168cff"
-			/>
-
-			<OpenCameraButton position={[0, -2.0, 0.14]} />
+			<Text
+				position={[0, 0, 0.08]}
+				fontSize={0.31}
+				anchorX="center"
+				anchorY="middle"
+				color={color}
+			>
+				{glyph}
+			</Text>
 		</group>
 	);
 }
 
+function SideDecorations({
+	position,
+	badgeText,
+}: {
+	position: [number, number, number];
+	badgeText: string;
+}) {
+	return (
+		<group position={position}>
+			{/* <RoundedBox args={[0.68, 5.0, 0.16]} radius={0.2} smoothness={6}>
+				<meshStandardMaterial color="#ffffff" roughness={0.25} />
+			</RoundedBox> */}
+			<RoundedBox
+				position={[0, 2.12, 0.14]}
+				args={[1.02, 0.72, 0.12]}
+				radius={0.16}
+				smoothness={5}
+			>
+				<meshStandardMaterial color="#123b78" roughness={0.3} />
+			</RoundedBox>
+			<Text
+				position={[0, 2.12, 0.22]}
+				fontSize={0.11}
+				maxWidth={0.86}
+				textAlign="center"
+				anchorX="center"
+				anchorY="middle"
+				color="#ffffff"
+			>
+				{badgeText}
+			</Text>
+			<IconChip
+				position={[0, 1.2, 0.14]}
+				background="#fffdf8"
+				glyph="♥"
+				color="#ef3340"
+			/>
+			<IconChip
+				position={[0, 0.38, 0.14]}
+				background="#168cff"
+				glyph="✓"
+				color="#ffffff"
+			/>
+			<IconChip
+				position={[0, -0.44, 0.14]}
+				background="#ffd23f"
+				glyph="➤"
+				color="#123b78"
+			/>
+			<IconChip
+				position={[0, -1.26, 0.14]}
+				background="#fffdf8"
+				glyph="#"
+				color="#168cff"
+			/>
+			<IconChip
+				position={[0, -2.1, 0.14]}
+				background="#fffd38"
+				glyph="○"
+				color="#168cff"
+			/>
+		</group>
+	);
+}
 /* ---------------------------------------------------------------------- */
 /* Wood Texture                                                            */
 /* ---------------------------------------------------------------------- */
@@ -390,6 +403,58 @@ function createBoothWoodTexture(): THREE.CanvasTexture {
 	texture.needsUpdate = true;
 
 	return texture;
+}
+
+function BoothActionButton({
+	label,
+	onClick,
+	disabled,
+}: {
+	label: string;
+	onClick: () => void;
+	disabled: boolean;
+}) {
+	const [hovered, setHovered] = useState(false);
+
+	return (
+		<group
+			position={[0, 0.95, 0.04]}
+			onClick={(event) => {
+				event.stopPropagation();
+				if (!disabled) onClick();
+			}}
+			onPointerOver={(event) => {
+				event.stopPropagation();
+				if (!disabled) {
+					setHovered(true);
+					document.body.style.cursor = "pointer";
+				}
+			}}
+			onPointerOut={() => {
+				setHovered(false);
+				document.body.style.cursor = "auto";
+			}}
+		>
+			<RoundedBox args={[2.6, 0.54, 0.16]} radius={0.16} smoothness={6}>
+				<meshStandardMaterial
+					color={
+						disabled ? "#9aa8b8" : hovered ? "#1b55a0" : "#123b78"
+					}
+					roughness={0.28}
+					metalness={0.08}
+				/>
+			</RoundedBox>
+			<Text
+				position={[0, 0, 0.09]}
+				fontSize={0.19}
+				anchorX="center"
+				anchorY="middle"
+				color="#ffffff"
+			>
+				{label}
+			</Text>
+		</group>
+	);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -512,16 +577,6 @@ function Counter() {
 			</mesh>
 
 			{/* ======================================================== */}
-			{/* DARK LOWER SHADOW / EDGE                                  */}
-			{/* ======================================================== */}
-
-			<mesh position={[0, -0.42, 1.58]}>
-				<boxGeometry args={[9.35, 0.1, 0.18]} />
-
-				<meshStandardMaterial color="#754a2e" roughness={0.5} />
-			</mesh>
-
-			{/* ======================================================== */}
 			{/* BLUE FRONT SOCIAL PANEL                                   */}
 			{/* ======================================================== */}
 
@@ -552,10 +607,6 @@ function Counter() {
 				/>
 			</mesh>
 
-			{/* ======================================================== */}
-			{/* LEFT SOCIAL ICONS                                          */}
-			{/* ======================================================== */}
-
 			<Text
 				position={[-3.35, -0.55, 1.74]}
 				fontSize={0.24}
@@ -563,27 +614,7 @@ function Counter() {
 				anchorY="middle"
 				color="#ffffff"
 			>
-				♥
-			</Text>
-
-			<Text
-				position={[-2.88, -0.55, 1.74]}
-				fontSize={0.22}
-				anchorX="center"
-				anchorY="middle"
-				color="#ffffff"
-			>
-				○
-			</Text>
-
-			<Text
-				position={[-2.4, -0.55, 1.74]}
-				fontSize={0.22}
-				anchorX="center"
-				anchorY="middle"
-				color="#ffffff"
-			>
-				➤
+				♥ ○ ➤
 			</Text>
 
 			{/* ======================================================== */}
@@ -598,6 +629,16 @@ function Counter() {
 				color="#ffffff"
 			>
 				#FutureTogether
+			</Text>
+
+			<Text
+				position={[3.35, -0.55, 1.74]}
+				fontSize={0.22}
+				anchorX="center"
+				anchorY="middle"
+				color="#ffffff"
+			>
+				▤
 			</Text>
 
 			{/* ======================================================== */}
@@ -622,10 +663,14 @@ function Counter() {
 /* ---------------------------------------------------------------------- */
 
 export default function SelfieBoothModel({
-	onTakeSelfie,
+	onAction,
+	actionLabel,
+	actionDisabled,
 	cameraTexture,
 }: SelfieBoothModelProps) {
 	const glowRef = useRef<THREE.Mesh>(null);
+	const [loadedIdleTexture, setLoadedIdleTexture] =
+		useState<THREE.Texture | null>(null);
 
 	/* ------------------------------------------------------------------ */
 	/* LED animation                                                       */
@@ -646,13 +691,53 @@ export default function SelfieBoothModel({
 	/* Idle screen texture                                                 */
 	/* ------------------------------------------------------------------ */
 
-	const dotTexture = useMemo(() => {
+	const fallbackIdleTexture = useMemo(() => {
 		if (typeof document === "undefined") {
 			return undefined;
 		}
 
 		return createIdleScreenTexture();
 	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+		const textureLoader = new THREE.TextureLoader();
+		const imageTexture = textureLoader.load(
+			"/selfie-booth/backgroundImage.png",
+			(loaded) => {
+				if (cancelled) {
+					loaded.dispose();
+					return;
+				}
+				const screenAspect = 5.92 / 4.92;
+				const imageAspect = loaded.image.width / loaded.image.height;
+				if (imageAspect > screenAspect) {
+					loaded.repeat.set(screenAspect / imageAspect, 1);
+					loaded.offset.x = (1 - loaded.repeat.x) / 2;
+				} else {
+					loaded.repeat.set(1, imageAspect / screenAspect);
+					loaded.offset.y = (1 - loaded.repeat.y) / 2;
+				}
+				loaded.wrapS = THREE.ClampToEdgeWrapping;
+				loaded.wrapT = THREE.ClampToEdgeWrapping;
+				loaded.colorSpace = THREE.SRGBColorSpace;
+				loaded.minFilter = THREE.LinearFilter;
+				loaded.magFilter = THREE.LinearFilter;
+				loaded.generateMipmaps = false;
+				setLoadedIdleTexture(loaded);
+			},
+			undefined,
+			() => {
+				// Keep the generated idle screen until the branded image is added.
+			},
+		);
+
+		return () => {
+			cancelled = true;
+			if (imageTexture.image) imageTexture.dispose();
+			fallbackIdleTexture?.dispose();
+		};
+	}, [fallbackIdleTexture]);
 
 	/* ------------------------------------------------------------------ */
 	/* Render                                                              */
@@ -707,18 +792,29 @@ export default function SelfieBoothModel({
 			{/* CENTRAL SELFIE SCREEN                                         */}
 			{/* ============================================================ */}
 
-			{/* Physical dark 3D bezel */}
+			{/* Recessed screen backing and a genuinely hollow raised bezel */}
 			<RoundedPanel
-				position={[0, 4.05, -0.25]}
-				size={[6.15, 5.15, 0.18]}
-				radius={0.38}
+				position={[0, 4.05, -0.24]}
+				size={[5.94, 4.94, 0.06]}
+				radius={0.3}
 				color="#101a2a"
 			/>
+			<ScreenBezel />
 
 			{/* Actual camera display */}
 			<CameraScreen
 				texture={cameraTexture}
-				dotTexture={dotTexture ?? new THREE.Texture()}
+				dotTexture={
+					loadedIdleTexture ??
+					fallbackIdleTexture ??
+					new THREE.Texture()
+				}
+			/>
+
+			<BoothActionButton
+				label={actionLabel}
+				onClick={onAction}
+				disabled={actionDisabled}
 			/>
 
 			{/* ============================================================ */}
@@ -734,15 +830,11 @@ export default function SelfieBoothModel({
 			<SideDecorations
 				position={[-3.92, 4.05, -0.12]}
 				badgeText="GOOD VIBES ONLY"
-				emojiGlyph="☺"
-				thirdGlyph="#"
 			/>
 
 			<SideDecorations
 				position={[3.92, 4.05, -0.12]}
 				badgeText="CAPTURE SHARE INSPIRE"
-				emojiGlyph="♡"
-				thirdGlyph="➤"
 			/>
 
 			{/* ============================================================ */}

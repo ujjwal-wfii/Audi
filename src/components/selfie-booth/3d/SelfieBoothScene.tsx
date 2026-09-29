@@ -14,9 +14,8 @@ import { createCarpetTexture } from "@/utils/textureGenerator";
 import { useSelfieCamera } from "./UserSelfieCamera";
 
 interface SelfieBoothSceneProps {
-	onTakeSelfie: () => void;
 	onCapture: (photo: Blob) => void;
-	showTakeSelfie?: boolean;
+	onRetake: () => void;
 	capturedPhoto?: Blob | null;
 }
 
@@ -151,10 +150,9 @@ function ResponsiveFit() {
 
 		/*
 		 * At camera distance ~15.5 and fov 38 the visible height is ~10.7.
-		 * Visible width = 10.7 * aspect. We want at least ~12 units
-		 * (booth is 9.9 wide) so narrow screens zoom OUT instead of cropping.
+		 * Fit the booth's 9.9 unit body plus a small margin on narrow screens.
 		 */
-		camera.zoom = Math.min(1, (10.7 * aspect) / 12);
+		camera.zoom = Math.min(1, 10.7 / 10.2, (10.7 * aspect) / 10.6);
 		camera.updateProjectionMatrix();
 	}, [camera, size.width, size.height]);
 
@@ -175,21 +173,16 @@ function CameraFrameLoop({ onFrame }: { onFrame: () => void }) {
 /* ---------------------------------------------------------------------- */
 
 export default function SelfieBoothScene({
-	onTakeSelfie,
 	onCapture,
-	showTakeSelfie = true,
+	onRetake,
 	capturedPhoto = null,
 }: SelfieBoothSceneProps) {
 	const { phase, error, texture, start, capture, drawFrame } =
 		useSelfieCamera();
 
 	const handleStart = useCallback(async () => {
-		const ok = await start();
-
-		if (ok) {
-			onTakeSelfie();
-		}
-	}, [start, onTakeSelfie]);
+		await start();
+	}, [start]);
 
 	const handleCapture = useCallback(async () => {
 		const blob = await capture();
@@ -270,20 +263,36 @@ export default function SelfieBoothScene({
 				<BoothPlants />
 
 				<SelfieBoothModel
-					onTakeSelfie={() => {
+					onAction={() => {
 						if (phase === "idle") {
 							void handleStart();
 						} else if (phase === "live") {
 							void handleCapture();
+						} else if (phase === "captured") {
+							onRetake();
 						}
 					}}
-					cameraTexture={phase === "idle" ? null : texture}
+					actionLabel={
+						phase === "starting"
+							? "STARTING CAMERA..."
+							: phase === "live"
+								? "CAPTURE SELFIE"
+								: phase === "captured"
+									? "RETAKE SELFIE"
+									: "TAKE SELFIE"
+					}
+					actionDisabled={phase === "starting"}
+					cameraTexture={
+						phase === "live" || phase === "captured"
+							? texture
+							: null
+					}
 				/>
 
 				<OrbitControls
 					enablePan={false}
 					enableZoom={false}
-					enableRotate={true}
+					enableRotate={false}
 					minAzimuthAngle={-Math.PI / 12}
 					maxAzimuthAngle={Math.PI / 12}
 					minPolarAngle={Math.PI / 2.15}
@@ -311,43 +320,6 @@ export default function SelfieBoothScene({
 							TRY AGAIN
 						</button>
 					</div>
-				</div>
-			)}
-
-			{/* TAKE SELFIE */}
-			{showTakeSelfie && phase === "idle" && (
-				<div className="pointer-events-none absolute inset-x-0 bottom-[78px] z-30 flex justify-center px-4">
-					<button
-						onClick={() => {
-							void handleStart();
-						}}
-						className="pointer-events-auto rounded-full border border-white/70 bg-white px-7 py-3 text-sm font-bold tracking-wide text-slate-900 shadow-xl transition duration-200 hover:scale-105 active:scale-95 sm:px-8 sm:py-3.5"
-					>
-						TAKE SELFIE
-					</button>
-				</div>
-			)}
-
-			{/* STARTING */}
-			{phase === "starting" && (
-				<div className="pointer-events-none absolute inset-x-0 bottom-[78px] z-30 flex justify-center px-4">
-					<div className="rounded-full bg-white/90 px-7 py-3 text-sm font-bold tracking-wide text-slate-700 shadow-xl">
-						STARTING CAMERA…
-					</div>
-				</div>
-			)}
-
-			{/* CAPTURE (only while live) */}
-			{phase === "live" && (
-				<div className="pointer-events-none absolute inset-x-0 bottom-[78px] z-30 flex justify-center px-4">
-					<button
-						onClick={() => {
-							void handleCapture();
-						}}
-						className="pointer-events-auto rounded-full border border-white/70 bg-white px-8 py-3 text-sm font-bold tracking-wide text-slate-900 shadow-xl transition duration-200 hover:scale-105 active:scale-95 sm:px-10 sm:py-3.5"
-					>
-						CAPTURE
-					</button>
 				</div>
 			)}
 		</div>

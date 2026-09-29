@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import SelfieBoothScene from "./3d/SelfieBoothScene";
 
 export default function SelfieBooth() {
-	const [started, setStarted] = useState(false);
 	const [photo, setPhoto] = useState<Blob | null>(null);
 	const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -23,10 +22,6 @@ export default function SelfieBooth() {
 		};
 	}, [photo]);
 
-	function handleStartCamera() {
-		setStarted(true);
-	}
-
 	function handleCapture(capturedPhoto: Blob) {
 		setPhoto(capturedPhoto);
 	}
@@ -37,8 +32,8 @@ export default function SelfieBooth() {
 
 	function handleContinue() {
 		/*
-		 * The captured photo already includes the mirrored image and the
-		 * OPEXN frame. Next: development animation / final result.
+		 * The captured photo is mirrored camera output. Next: development
+		 * animation, branded frame and final result.
 		 */
 		console.log("Continue with selfie:", photoUrl);
 	}
@@ -46,29 +41,22 @@ export default function SelfieBooth() {
 	return (
 		<main className="relative h-[100svh] w-full overflow-hidden bg-[#f1eeea]">
 			<SelfieBoothScene
-				onTakeSelfie={handleStartCamera}
 				onCapture={handleCapture}
-				showTakeSelfie={!started}
+				onRetake={handleRetake}
 				capturedPhoto={photo}
 			/>
 
 			{photo && (
-				<div className="pointer-events-none absolute inset-x-0 bottom-[7%] z-40 flex justify-center px-4 sm:bottom-[6%]">
-					<div className="pointer-events-auto flex items-center gap-3 rounded-full bg-black/10 p-2 backdrop-blur-sm">
-						<button
-							onClick={handleRetake}
-							className="rounded-full border border-white/80 bg-white px-6 py-3 text-xs font-bold tracking-wide text-slate-900 shadow-lg transition duration-200 hover:scale-105 active:scale-95 sm:px-7 sm:text-sm"
-						>
-							RETAKE
-						</button>
-
-						<button
-							onClick={handleContinue}
-							className="rounded-full bg-[#123b78] px-7 py-3 text-xs font-bold tracking-wide text-white shadow-lg transition duration-200 hover:scale-105 active:scale-95 sm:px-8 sm:text-sm"
-						>
-							CONTINUE
-						</button>
-					</div>
+				<div className="pointer-events-none absolute right-4 top-4 z-40 sm:right-6 sm:top-6">
+					<button
+						onClick={handleContinue}
+						className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/30 bg-[#123b78] px-5 py-3 text-xs font-bold tracking-[0.12em] text-white shadow-[0_8px_24px_rgba(18,59,120,0.28)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-[#1b55a0] active:translate-y-0 sm:px-6 sm:py-3.5 sm:text-sm"
+					>
+						CONTINUE
+						<span aria-hidden="true" className="text-base leading-none">
+							→
+						</span>
+					</button>
 				</div>
 			)}
 		</main>

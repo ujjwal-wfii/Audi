@@ -2,12 +2,12 @@ import * as THREE from "three";
 
 /*
  * Idle screen shown on the booth display before the camera starts.
- * Drawn at 1200x1000 (same aspect as the 5.92 x 4.92 screen) so it maps
+ * Drawn at 1184x984 (same aspect as the 5.92 x 4.92 screen) so it maps
  * 1:1 with no repeating, stretching or aliasing.
  */
 
-const W = 1200;
-const H = 1000;
+const W = 1184;
+const H = 984;
 
 function roundedRect(
 	ctx: CanvasRenderingContext2D,
@@ -36,6 +36,9 @@ export function createIdleScreenTexture(): THREE.CanvasTexture {
 	if (!ctx) {
 		return new THREE.CanvasTexture(canvas);
 	}
+
+	roundedRect(ctx, 0, 0, W, H, 58);
+	ctx.clip();
 
 	/* Soft background */
 	const bg = ctx.createLinearGradient(0, 0, 0, H);

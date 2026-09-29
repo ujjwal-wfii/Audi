@@ -567,13 +567,16 @@ export class AuditoriumScene {
 		imageContainer.style.display = "flex";
 		imageContainer.style.flexDirection = "column";
 
-		imageContainer.style.background = "#000";
+		// Partition between images
+		imageContainer.style.gap = "6px";
+
+		imageContainer.style.background = "#5c3822";
 
 		// ---------------------------------------
 		// THREE IMAGES
 		// ---------------------------------------
 
-		const images = ["/wall.png", "/wall.png", "/wall.png"];
+		const images = ["/logo1.jpeg", "/logo.png", "/logo1.jpeg"];
 
 		images.forEach((src) => {
 			const image = document.createElement("img");
@@ -582,8 +585,8 @@ export class AuditoriumScene {
 
 			image.style.width = "100%";
 
-			// 3 equal vertical sections
-			image.style.height = "33.3333%";
+			// Account for the two 6px partitions
+			image.style.height = "calc((100% - 12px) / 3)";
 
 			image.style.display = "block";
 
