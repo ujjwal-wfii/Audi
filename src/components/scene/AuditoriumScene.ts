@@ -78,6 +78,9 @@ export class AuditoriumScene {
 	private renderer: THREE.WebGLRenderer;
 	private cssRenderer: CSS3DRenderer;
 	private youtubeScreen: CSS3DObject | null = null;
+	private youtubePlayer: any = null;
+	private isYouTubeReady = false;
+	private shouldPlayYouTube = false;
 	// Independent presenter screens. Each can load different content.
 	private presenterScreens: Map<"LEFT" | "RIGHT", CSS3DObject> = new Map();
 	private callbacks: SceneCallbacks;
@@ -109,8 +112,6 @@ export class AuditoriumScene {
 	private screenRaycaster = new THREE.Raycaster();
 	private screenOccluders: THREE.Object3D[] = [];
 	private readonly cameraWorldPosition = new THREE.Vector3();
-
-	private lastPerformanceReport = 0;
 
 	// ---------------------------------------------------------
 	// SCREEN VISIBILITY PERFORMANCE CACHE
@@ -149,6 +150,7 @@ export class AuditoriumScene {
 	private resizeObserver: ResizeObserver | null = null;
 	private readonly referenceAspect = 16 / 9;
 	private readonly referenceFov = 60;
+	private rightImageScreen: CSS3DObject | null = null;
 
 	private lookTarget = new THREE.Vector3();
 	private areScreensRevealed = false;
@@ -352,6 +354,52 @@ export class AuditoriumScene {
 		lobbyLight.position.set(0, 4.5, 36);
 		this.scene.add(lobbyLight);
 	}
+	// load the YouTube IFrame API and initialize the player
+	private loadYouTubeAPI(iframe: HTMLIFrameElement, videoId: string) {
+		const initializePlayer = () => {
+			this.youtubePlayer = new (window as any).YT.Player(iframe, {
+				events: {
+					onReady: () => {
+						this.isYouTubeReady = true;
+
+						if (
+							this.shouldPlayYouTube &&
+							this.currentState === "SEATED"
+						) {
+							this.youtubePlayer.playVideo();
+						}
+					},
+
+					onStateChange: (event: any) => {
+						console.log("YouTube state:", event.data);
+					},
+
+					onError: (event: any) => {
+						console.error("YouTube player error:", event.data);
+					},
+				},
+			});
+		};
+
+		if ((window as any).YT && (window as any).YT.Player) {
+			initializePlayer();
+			return;
+		}
+
+		const existingScript = document.querySelector(
+			'script[src="https://www.youtube.com/iframe_api"]',
+		);
+
+		if (!existingScript) {
+			const script = document.createElement("script");
+
+			script.src = "https://www.youtube.com/iframe_api";
+
+			document.head.appendChild(script);
+		}
+
+		(window as any).onYouTubeIframeAPIReady = initializePlayer;
+	}
 	// -------------------------------------------------------------
 	// YOUTUBE LIVE VIDEO ON THE REAL 3D SCREEN
 	// -------------------------------------------------------------
@@ -359,11 +407,10 @@ export class AuditoriumScene {
 		const screenWidth = 28;
 		const screenHeight = 13;
 
-		const youtubeVideoId = "WjSNkTVHB88";
+		const youtubeVideoId = process.env.NEXT_PUBLIC_YOUTUBE_VIDEO_ID_1 || "";
 
 		const wrapper = document.createElement("div");
 
-		// Large CSS canvas which gets scaled into Three.js world units.
 		const cssWidth = 1000;
 		const cssHeight = cssWidth * (screenHeight / screenWidth);
 
@@ -378,14 +425,17 @@ export class AuditoriumScene {
 
 		const iframe = document.createElement("iframe");
 
+		iframe.id = "youtube-main-screen";
+
 		iframe.src =
 			`https://www.youtube.com/embed/${youtubeVideoId}` +
-			`?autoplay=1` +
+			`?autoplay=0` +
 			`&controls=0` +
 			`&rel=0` +
 			`&modestbranding=1` +
 			`&playsinline=1` +
 			`&enablejsapi=1`;
+
 		iframe.style.width = "100%";
 		iframe.style.height = "100%";
 		iframe.style.border = "0";
@@ -393,19 +443,17 @@ export class AuditoriumScene {
 		iframe.style.pointerEvents = "none";
 
 		iframe.setAttribute("allow", "autoplay; encrypted-media");
+
 		iframe.setAttribute("allowfullscreen", "");
 
 		wrapper.appendChild(iframe);
 
 		const videoObject = new CSS3DObject(wrapper);
 
-		// Match the exact position of your existing physical screen.
 		videoObject.position.set(0, screenHeight / 2, -8.49);
 
 		videoObject.rotation.set(0, 0, 0);
 
-		// Convert the 1000px CSS element into the same
-		// 28 x 13 Three.js dimensions as the real screen.
 		const worldScale = screenWidth / cssWidth;
 
 		videoObject.scale.set(worldScale, worldScale, worldScale);
@@ -413,11 +461,27 @@ export class AuditoriumScene {
 		this.youtubeScreen = videoObject;
 
 		this.scene.add(videoObject);
+
+		this.loadYouTubeAPI(iframe, youtubeVideoId);
 	}
 	// -------------------------------------------------------------
 	// STOP YOUTUBE LIVE VIDEO
 	// -------------------------------------------------------------
 	private stopYouTubeVideo() {
+		this.shouldPlayYouTube = false;
+		this.isYouTubeReady = false;
+
+		if (this.youtubePlayer) {
+			try {
+				this.youtubePlayer.stopVideo();
+				this.youtubePlayer.destroy();
+			} catch (error) {
+				console.warn("Failed to destroy YouTube player:", error);
+			}
+
+			this.youtubePlayer = null;
+		}
+
 		if (!this.youtubeScreen) return;
 
 		const wrapper = this.youtubeScreen.element;
@@ -437,7 +501,7 @@ export class AuditoriumScene {
 	// -------------------------------------------------------------
 
 	private readonly presenterScreenConfig: Record<
-		"LEFT" | "RIGHT",
+		"LEFT",
 		{
 			videoId: string;
 			x: number;
@@ -446,14 +510,8 @@ export class AuditoriumScene {
 		}
 	> = {
 		LEFT: {
-			videoId: "yZrV-5vvZSE",
+			videoId: process.env.NEXT_PUBLIC_PRESENTER_VIDEO_ID || "",
 			x: -11.0,
-			z: -0.5,
-		},
-		RIGHT: {
-			// Keep this the same for now. Change independently later.
-			videoId: "yZrV-5vvZSE",
-			x: 11.0,
 			z: -0.5,
 		},
 	};
@@ -472,9 +530,94 @@ export class AuditoriumScene {
 
 		this.presenterScreens.clear();
 	}
+	private createRightImageScreen() {
+		const screenWidth = 4;
+		const screenHeight = 7.1111;
 
+		const cssWidth = 500;
+		const cssHeight = 888.89;
+
+		const wrapper = document.createElement("div");
+
+		wrapper.style.width = `${cssWidth}px`;
+		wrapper.style.height = `${cssHeight}px`;
+
+		wrapper.style.background = "#000";
+
+		wrapper.style.overflow = "hidden";
+
+		// SAME UI / FRAME AS OLD PRESENTER SCREEN
+		wrapper.style.border = "20px solid #5c3822";
+
+		wrapper.style.boxSizing = "border-box";
+
+		wrapper.style.borderRadius = "18px";
+
+		wrapper.style.pointerEvents = "none";
+
+		// ---------------------------------------
+		// IMAGE CONTAINER
+		// ---------------------------------------
+
+		const imageContainer = document.createElement("div");
+
+		imageContainer.style.width = "100%";
+		imageContainer.style.height = "100%";
+
+		imageContainer.style.display = "flex";
+		imageContainer.style.flexDirection = "column";
+
+		imageContainer.style.background = "#000";
+
+		// ---------------------------------------
+		// THREE IMAGES
+		// ---------------------------------------
+
+		const images = ["/wall.png", "/wall.png", "/wall.png"];
+
+		images.forEach((src) => {
+			const image = document.createElement("img");
+
+			image.src = src;
+
+			image.style.width = "100%";
+
+			// 3 equal vertical sections
+			image.style.height = "33.3333%";
+
+			image.style.display = "block";
+
+			image.style.objectFit = "cover";
+
+			image.style.flexShrink = "0";
+
+			imageContainer.appendChild(image);
+		});
+
+		wrapper.appendChild(imageContainer);
+
+		// ---------------------------------------
+		// CSS3D OBJECT
+		// ---------------------------------------
+
+		const imageScreen = new CSS3DObject(wrapper);
+
+		imageScreen.position.set(11.0, 1.2 + screenHeight / 2, -0.5);
+
+		imageScreen.rotation.set(0, 0, 0);
+
+		const worldScale = screenWidth / cssWidth;
+
+		imageScreen.scale.set(worldScale, worldScale, worldScale);
+
+		imageScreen.visible = false;
+
+		this.scene.add(imageScreen);
+
+		return imageScreen;
+	}
 	private createPresenterScreen(
-		side: "LEFT" | "RIGHT",
+		side: "LEFT",
 		videoId = this.presenterScreenConfig[side].videoId,
 	) {
 		const screenWidth = 4;
@@ -541,8 +684,10 @@ export class AuditoriumScene {
 
 	private createAllPresenterScreens() {
 		this.stopPresenterVideo();
+
 		this.createPresenterScreen("LEFT");
-		this.createPresenterScreen("RIGHT");
+
+		this.rightImageScreen = this.createRightImageScreen();
 	}
 
 	private addScreenOccluder(object: THREE.Object3D) {
@@ -1732,15 +1877,21 @@ export class AuditoriumScene {
 		const tl = gsap.timeline({
 			onComplete: () => {
 				this.currentState = "SEATED";
+
 				this.callbacks.onStateChange("SEATED");
 
 				this.updateActivePovVisual(targetPov);
+
 				this.callbacks.onPovChange(targetPov);
 
-				// Finish the continuous render loop.
+				this.shouldPlayYouTube = true;
+
+				if (this.isYouTubeReady && this.youtubePlayer) {
+					this.youtubePlayer.playVideo();
+				}
+
 				this.stopContinuousRendering();
 
-				// Render the final seated state once.
 				this.requestRender();
 
 				if (onComplete) {
@@ -1880,6 +2031,9 @@ export class AuditoriumScene {
 				this.presenterScreens.forEach((screen) => {
 					screen.visible = true;
 				});
+				if (this.rightImageScreen) {
+					this.rightImageScreen.visible = true;
+				}
 			},
 			[],
 			3.2,
@@ -1974,6 +2128,9 @@ export class AuditoriumScene {
 			// ---------------------------------------------------------
 			this.stopYouTubeVideo();
 			this.stopPresenterVideo();
+			if (this.rightImageScreen) {
+				this.rightImageScreen.visible = false;
+			}
 
 			this.currentState = "LOBBY";
 			this.callbacks.onStateChange("LOBBY");
@@ -2216,7 +2373,11 @@ export class AuditoriumScene {
 			});
 
 			this.lastScreenVisibilityCheck = now;
-		} else if (this.youtubeScreen || this.presenterScreens.size > 0) {
+		} else if (
+			this.youtubeScreen ||
+			this.presenterScreens.size > 0 ||
+			this.rightImageScreen
+		) {
 			if (
 				now - this.lastScreenVisibilityCheck >=
 				this.screenVisibilityInterval
@@ -2226,6 +2387,12 @@ export class AuditoriumScene {
 				if (this.youtubeScreen) {
 					this.youtubeScreen.visible =
 						this.isScreenVisibleFromCamera();
+				}
+				if (this.rightImageScreen) {
+					this.rightImageScreen.visible =
+						this.isPresenterScreenVisibleFromCamera(
+							this.rightImageScreen,
+						);
 				}
 
 				this.presenterScreens.forEach((screen) => {
