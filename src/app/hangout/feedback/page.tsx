@@ -1,7 +1,7 @@
 import AuthGate from "@/components/auth/AuthGate";
 import { FeedbackWall } from "@/components/feedback-wall/FeedbackWall";
 
-export default async function HomePage() {
+export default async function HangoutFeedbackPage() {
 	return (
 		<AuthGate>
 			<main className="min-h-screen bg-stone-100 py-8">
