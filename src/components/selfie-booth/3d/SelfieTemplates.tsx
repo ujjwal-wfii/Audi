@@ -10,25 +10,52 @@ const CYAN = "#42c8ff";
 const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
 
 function classic(ctx: CanvasRenderingContext2D, w: number, h: number) {
-	ctx.strokeStyle = "#ffffff";
-	ctx.lineWidth = 56;
-	ctx.strokeRect(0, 0, w, h);
+	/*
+	 * Match the physical booth screen: a soft white outer light and a
+	 * recessed dark rounded bezel. The image itself stays unobstructed.
+	 */
+	const outerRadius = Math.min(w, h) * 0.075;
+	const bezelInset = Math.min(w, h) * 0.035;
+	const bezelRadius = outerRadius * 0.78;
 
-	ctx.strokeStyle = NAVY;
-	ctx.lineWidth = 4;
-	ctx.strokeRect(28, 28, w - 56, h - 56);
+	ctx.shadowColor = "rgba(255, 250, 235, 0.95)";
+	ctx.shadowBlur = Math.min(w, h) * 0.045;
+	ctx.strokeStyle = "#fffdf8";
+	ctx.lineWidth = Math.min(w, h) * 0.055;
+	roundedRect(ctx, 0, 0, w, h, outerRadius);
+	ctx.stroke();
 
-	ctx.fillStyle = "#ffffff";
-	ctx.fillRect(0, h - 96, w, 96);
+	ctx.shadowColor = "transparent";
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = "#182434";
+	ctx.lineWidth = Math.min(w, h) * 0.035;
+	roundedRect(
+		ctx,
+		bezelInset,
+		bezelInset,
+		w - bezelInset * 2,
+		h - bezelInset * 2,
+		bezelRadius,
+	);
+	ctx.stroke();
+}
 
-	ctx.fillStyle = NAVY;
-	ctx.textBaseline = "middle";
-	ctx.font = `800 40px ${FONT}`;
-	ctx.textAlign = "left";
-	ctx.fillText("OPEXN", 44, h - 48);
-	ctx.font = `600 30px ${FONT}`;
-	ctx.textAlign = "right";
-	ctx.fillText("#FutureTogether", w - 44, h - 48);
+function roundedRect(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	radius: number,
+) {
+	const r = Math.min(radius, width / 2, height / 2);
+	ctx.beginPath();
+	ctx.moveTo(x + r, y);
+	ctx.arcTo(x + width, y, x + width, y + height, r);
+	ctx.arcTo(x + width, y + height, x, y + height, r);
+	ctx.arcTo(x, y + height, x, y, r);
+	ctx.arcTo(x, y, x + width, y, r);
+	ctx.closePath();
 }
 
 function event(ctx: CanvasRenderingContext2D, w: number, h: number) {

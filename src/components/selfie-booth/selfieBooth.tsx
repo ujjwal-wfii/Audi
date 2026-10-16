@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import SelfieBoothScene from "./3d/SelfieBoothScene";
-// import SelfieQRCode from "./3d/SelfieQrCode";
-import SelfieQRCode from "./3d/SelfieQRCode";
 import { SELFIE_TEMPLATES } from "@/lib/selfie-booth/templates";
 import { generateFinalPhoto } from "@/lib/selfie-booth/photoRenderer";
 import { useSelfieShare } from "@/lib/selfie-booth/userSelfieShare";
@@ -13,10 +11,7 @@ export default function SelfieBooth() {
 	const [rawPhoto, setRawPhoto] = useState<Blob | null>(null);
 	const [finalPhoto, setFinalPhoto] = useState<Blob | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [uploadedForPhoto, setUploadedForPhoto] =
-		useState<ReturnType<typeof useSelfieShare>["uploaded"]>(null);
-	const { upload, download, share, uploading, uploadError } =
-		useSelfieShare();
+	const { download, share, sharing, shareError } = useSelfieShare();
 
 	const finalPhotoUrl = useMemo(
 		() => (finalPhoto ? URL.createObjectURL(finalPhoto) : null),
@@ -32,14 +27,12 @@ export default function SelfieBooth() {
 	function handleCapture(capturedPhoto: Blob) {
 		setRawPhoto(capturedPhoto);
 		setFinalPhoto(null);
-		setUploadedForPhoto(null);
 		setError(null);
 	}
 
 	function handleRetake() {
 		setRawPhoto(null);
 		setFinalPhoto(null);
-		setUploadedForPhoto(null);
 		setError(null);
 	}
 
@@ -70,14 +63,8 @@ export default function SelfieBooth() {
 
 	async function handleShare() {
 		if (!finalPhoto) return;
-		const uploadedPhoto = uploadedForPhoto ?? (await upload(finalPhoto));
-		if (!uploadedForPhoto && uploadedPhoto) {
-			setUploadedForPhoto(uploadedPhoto);
-		}
-		const result = await share(finalPhoto, uploadedPhoto?.shareUrl);
-		if (result === "copied") {
-			setError("Share link copied to clipboard.");
-		}
+		setError(null);
+		await share(finalPhoto);
 	}
 
 	return (
@@ -160,8 +147,8 @@ export default function SelfieBooth() {
 										Your selfie is ready
 									</h1>
 									<p className="mt-1 text-sm text-slate-600">
-										Save it to this device, or tap Share to
-										get a link you can open on your phone.
+										Tap Share to send your framed selfie
+										directly from this device.
 									</p>
 									<div className="mt-4 h-[3px] w-16 rounded-full bg-[#42c8ff]" />
 								</div>
@@ -172,17 +159,17 @@ export default function SelfieBooth() {
 										onClick={() => download(finalPhoto)}
 										className="w-full rounded-full bg-[#123b78] px-6 py-3.5 text-sm font-bold tracking-wide text-white shadow-lg transition duration-200 hover:bg-[#1b55a0] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#42c8ff]/60 motion-safe:hover:scale-[1.03] motion-safe:active:scale-95"
 									>
-										DOWNLOAD
+										DOWNLOAD SELFIE
 									</button>
 
 									<button
 										type="button"
 										onClick={handleShare}
-										disabled={uploading}
-										aria-busy={uploading}
+										disabled={sharing}
+										aria-busy={sharing}
 										className="w-full rounded-full bg-[#42c8ff] px-6 py-3.5 text-sm font-bold tracking-wide text-[#123b78] shadow-lg transition duration-200 hover:bg-[#6fd6ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#123b78]/40 disabled:opacity-60 motion-safe:hover:scale-[1.03] motion-safe:active:scale-95"
 									>
-										{uploading ? "UPLOADING…" : "SHARE"}
+										{sharing ? "OPENING SHARE…" : "SHARE SELFIE"}
 									</button>
 
 									<button
@@ -194,48 +181,12 @@ export default function SelfieBooth() {
 									</button>
 								</div>
 
-								{/* QR panel: fixed size so the layout doesn't jump when the link arrives */}
-								<div className="flex flex-col items-center gap-3 rounded-2xl bg-white p-4 text-center shadow-md">
-									{uploadedForPhoto?.shareUrl ? (
-										<>
-											<SelfieQRCode
-												value={
-													uploadedForPhoto.shareUrl
-												}
-											/>
-											<p className="text-sm text-slate-600">
-												Scan to open your selfie on your
-												phone.
-											</p>
-										</>
-									) : (
-										<>
-											<div
-												className={`flex h-[196px] w-[196px] items-center justify-center rounded-lg border-2 border-dashed border-[#123b78]/25 px-4 text-sm text-slate-500 ${
-													uploading
-														? "motion-safe:animate-pulse"
-														: ""
-												}`}
-											>
-												{uploading
-													? "Creating your link…"
-													: "Your QR code appears here"}
-											</div>
-											<p className="text-sm text-slate-600">
-												Tap Share to get a QR code for
-												your phone.
-											</p>
-										</>
-									)}
-								</div>
-
-								{(error || uploadError) && (
+								{(error || shareError) && (
 									<p
 										role="alert"
 										className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm text-red-700"
 									>
-										{error ??
-											`${uploadError} Tap Share to try again.`}
+										{error ?? shareError}
 									</p>
 								)}
 							</div>
