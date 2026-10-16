@@ -79,14 +79,17 @@ export function segmentAndPaintMask(
 	timestampMs: number,
 	maskCanvas: HTMLCanvasElement,
 ) {
-	segmenter.segmentForVideo(
-		source,
-		timestampMs,
-		(result: ImageSegmenterResult) => {
+	return new Promise<void>((resolve, reject) => {
+		try {
+			segmenter.segmentForVideo(
+				source,
+				timestampMs,
+				(result: ImageSegmenterResult) => {
 			const mask = result.confidenceMasks?.[0];
 
 			if (!mask) {
 				result.close?.();
+				resolve();
 				return;
 			}
 
@@ -140,6 +143,11 @@ export function segmentAndPaintMask(
 
 			mask.close();
 			result.close?.();
-		},
-	);
+			resolve();
+				},
+			);
+		} catch (error) {
+			reject(error);
+		}
+	});
 }

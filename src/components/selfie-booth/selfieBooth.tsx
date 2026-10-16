@@ -1,63 +1,247 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import SelfieBoothScene from "./3d/SelfieBoothScene";
+// import SelfieQRCode from "./3d/SelfieQrCode";
+import SelfieQRCode from "./3d/SelfieQRCode";
+import { SELFIE_TEMPLATES } from "@/lib/selfie-booth/templates";
+import { generateFinalPhoto } from "@/lib/selfie-booth/photoRenderer";
+import { useSelfieShare } from "@/lib/selfie-booth/userSelfieShare";
 
 export default function SelfieBooth() {
-	const [photo, setPhoto] = useState<Blob | null>(null);
-	const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+	const [rawPhoto, setRawPhoto] = useState<Blob | null>(null);
+	const [finalPhoto, setFinalPhoto] = useState<Blob | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const [uploadedForPhoto, setUploadedForPhoto] =
+		useState<ReturnType<typeof useSelfieShare>["uploaded"]>(null);
+	const { upload, download, share, uploading, uploadError } =
+		useSelfieShare();
+
+	const finalPhotoUrl = useMemo(
+		() => (finalPhoto ? URL.createObjectURL(finalPhoto) : null),
+		[finalPhoto],
+	);
 
 	useEffect(() => {
-		if (!photo) {
-			setPhotoUrl(null);
-			return;
-		}
-
-		const url = URL.createObjectURL(photo);
-		setPhotoUrl(url);
-
 		return () => {
-			URL.revokeObjectURL(url);
+			if (finalPhotoUrl) URL.revokeObjectURL(finalPhotoUrl);
 		};
-	}, [photo]);
+	}, [finalPhotoUrl]);
 
 	function handleCapture(capturedPhoto: Blob) {
-		setPhoto(capturedPhoto);
+		setRawPhoto(capturedPhoto);
+		setFinalPhoto(null);
+		setUploadedForPhoto(null);
+		setError(null);
 	}
 
 	function handleRetake() {
-		setPhoto(null);
+		setRawPhoto(null);
+		setFinalPhoto(null);
+		setUploadedForPhoto(null);
+		setError(null);
 	}
 
-	function handleContinue() {
-		/*
-		 * The captured photo is mirrored camera output. Next: development
-		 * animation, branded frame and final result.
-		 */
-		console.log("Continue with selfie:", photoUrl);
+	async function handleContinue() {
+		if (!rawPhoto) return;
+
+		setError(null);
+		try {
+			const classicTemplate = SELFIE_TEMPLATES.find(
+				(template) => template.id === "classic",
+			);
+			if (!classicTemplate) {
+				throw new Error("Selfie frame is unavailable.");
+			}
+
+			setFinalPhoto(
+				await generateFinalPhoto(rawPhoto, classicTemplate),
+			);
+		} catch (err) {
+			console.error("Selfie preview generation failed:", err);
+			setError(
+				err instanceof Error
+					? err.message
+					: "Could not prepare your selfie.",
+			);
+		}
+	}
+
+	async function handleShare() {
+		if (!finalPhoto) return;
+		const uploadedPhoto = uploadedForPhoto ?? (await upload(finalPhoto));
+		if (!uploadedForPhoto && uploadedPhoto) {
+			setUploadedForPhoto(uploadedPhoto);
+		}
+		const result = await share(finalPhoto, uploadedPhoto?.shareUrl);
+		if (result === "copied") {
+			setError("Share link copied to clipboard.");
+		}
 	}
 
 	return (
-		<main className="relative h-[100svh] w-full overflow-hidden bg-[#f1eeea]">
+		<main className="relative h-svh w-full overflow-hidden bg-[#f1eeea]">
 			<SelfieBoothScene
 				onCapture={handleCapture}
 				onRetake={handleRetake}
-				capturedPhoto={photo}
+				capturedPhoto={rawPhoto}
 			/>
 
-			{photo && (
-				<div className="pointer-events-none absolute right-4 top-4 z-40 sm:right-6 sm:top-6">
-					<button
-						onClick={handleContinue}
-						className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/30 bg-[#123b78] px-5 py-3 text-xs font-bold tracking-[0.12em] text-white shadow-[0_8px_24px_rgba(18,59,120,0.28)] backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-[#1b55a0] active:translate-y-0 sm:px-6 sm:py-3.5 sm:text-sm"
-					>
-						CONTINUE
-						<span aria-hidden="true" className="text-base leading-none">
-							→
-						</span>
-					</button>
-				</div>
+			{rawPhoto && !finalPhoto && (
+				<section className="absolute inset-x-0 bottom-0 z-50 p-4 shadow-2xl  sm:p-6">
+					<div className="mx-auto flex max-w-3xl flex-col gap-4">
+						<button
+							onClick={handleContinue}
+							className="mx-auto rounded-full bg-white px-8 py-3 text-sm font-bold tracking-wide text-[#123b78] transition hover:scale-105 active:scale-95"
+						>
+							CONTINUE
+						</button>
+					</div>
+				</section>
+			)}
+
+			{finalPhoto && finalPhotoUrl && (
+				<section
+					role="dialog"
+					aria-modal="true"
+					aria-label="Your selfie"
+					className="absolute inset-0 z-50 overflow-y-auto bg-[#123b78]/95 backdrop-blur"
+					style={{
+						/* Same dot grid language as the booth's idle screen */
+						backgroundImage:
+							"radial-gradient(rgba(255,255,255,0.09) 1.5px, transparent 1.5px)",
+						backgroundSize: "22px 22px",
+					}}
+				>
+					<div className="flex min-h-full items-center justify-center p-3 sm:p-6">
+						<div className="grid w-full max-w-6xl gap-5 rounded-[2rem] bg-[#f1eeea] p-4 shadow-2xl sm:p-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:gap-8 lg:p-8">
+							{/* ---------------------------------------------------------- */}
+							{/* Photo print: white card, navy caption strip                 */}
+							{/* ---------------------------------------------------------- */}
+							<div className="flex items-center justify-center">
+								<figure className="w-fit max-w-full overflow-hidden rounded-2xl bg-white shadow-[0_18px_40px_-12px_rgba(18,59,120,0.45)]">
+									<div className="p-2.5 sm:p-3">
+										{/* eslint-disable-next-line @next/next/no-img-element */}
+										<img
+											src={finalPhotoUrl}
+											alt="Your selfie"
+											draggable={false}
+											className="block h-auto max-h-[52svh] w-auto max-w-full rounded-lg object-contain lg:max-h-[calc(100svh-14rem)]"
+										/>
+									</div>
+
+									<figcaption className="relative flex items-center justify-between gap-4 bg-[#123b78] px-4 py-3 text-white">
+										<span className="text-sm font-semibold tracking-wide">
+											OPEXN
+										</span>
+										<span className="text-sm">
+											#FutureTogether
+										</span>
+
+										{/* Cyan light along the bottom edge, like the booth counter */}
+										<span
+											aria-hidden="true"
+											className="absolute inset-x-0 bottom-0 h-[3px] bg-[#8ddfff] shadow-[0_0_10px_2px_rgba(66,200,255,0.7)]"
+										/>
+									</figcaption>
+								</figure>
+							</div>
+
+							{/* ---------------------------------------------------------- */}
+							{/* Action rail                                                 */}
+							{/* ---------------------------------------------------------- */}
+							<div className="flex flex-col justify-center gap-5">
+								<div>
+									<p className="text-4xl font-light tracking-wide text-[#123b78]">
+										OPEXN
+									</p>
+									<h1 className="mt-1 text-2xl font-black text-[#123b78]">
+										Your selfie is ready
+									</h1>
+									<p className="mt-1 text-sm text-slate-600">
+										Save it to this device, or tap Share to
+										get a link you can open on your phone.
+									</p>
+									<div className="mt-4 h-[3px] w-16 rounded-full bg-[#42c8ff]" />
+								</div>
+
+								<div className="flex flex-col gap-3">
+									<button
+										type="button"
+										onClick={() => download(finalPhoto)}
+										className="w-full rounded-full bg-[#123b78] px-6 py-3.5 text-sm font-bold tracking-wide text-white shadow-lg transition duration-200 hover:bg-[#1b55a0] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#42c8ff]/60 motion-safe:hover:scale-[1.03] motion-safe:active:scale-95"
+									>
+										DOWNLOAD
+									</button>
+
+									<button
+										type="button"
+										onClick={handleShare}
+										disabled={uploading}
+										aria-busy={uploading}
+										className="w-full rounded-full bg-[#42c8ff] px-6 py-3.5 text-sm font-bold tracking-wide text-[#123b78] shadow-lg transition duration-200 hover:bg-[#6fd6ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#123b78]/40 disabled:opacity-60 motion-safe:hover:scale-[1.03] motion-safe:active:scale-95"
+									>
+										{uploading ? "UPLOADING…" : "SHARE"}
+									</button>
+
+									<button
+										type="button"
+										onClick={handleRetake}
+										className="w-full rounded-full border-2 border-[#123b78] px-6 py-3.5 text-sm font-bold tracking-wide text-[#123b78] transition duration-200 hover:bg-[#123b78]/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#42c8ff]/60 motion-safe:active:scale-95"
+									>
+										RETAKE
+									</button>
+								</div>
+
+								{/* QR panel: fixed size so the layout doesn't jump when the link arrives */}
+								<div className="flex flex-col items-center gap-3 rounded-2xl bg-white p-4 text-center shadow-md">
+									{uploadedForPhoto?.shareUrl ? (
+										<>
+											<SelfieQRCode
+												value={
+													uploadedForPhoto.shareUrl
+												}
+											/>
+											<p className="text-sm text-slate-600">
+												Scan to open your selfie on your
+												phone.
+											</p>
+										</>
+									) : (
+										<>
+											<div
+												className={`flex h-[196px] w-[196px] items-center justify-center rounded-lg border-2 border-dashed border-[#123b78]/25 px-4 text-sm text-slate-500 ${
+													uploading
+														? "motion-safe:animate-pulse"
+														: ""
+												}`}
+											>
+												{uploading
+													? "Creating your link…"
+													: "Your QR code appears here"}
+											</div>
+											<p className="text-sm text-slate-600">
+												Tap Share to get a QR code for
+												your phone.
+											</p>
+										</>
+									)}
+								</div>
+
+								{(error || uploadError) && (
+									<p
+										role="alert"
+										className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm text-red-700"
+									>
+										{error ??
+											`${uploadError} Tap Share to try again.`}
+									</p>
+								)}
+							</div>
+						</div>
+					</div>
+				</section>
 			)}
 		</main>
 	);

@@ -233,7 +233,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { ImageSegmenter } from "@mediapipe/tasks-vision";
 import { getSegmenter, segmentAndPaintMask } from "./SelfieSegmenter";
-import { getBoothBackgroundCanvas } from "./BackgroundTexture";
+import {
+	getBoothBackgroundCanvas,
+	waitForBoothBackgroundCanvas,
+} from "./BackgroundTexture";
 
 export type CameraPhase = "idle" | "starting" | "live" | "captured";
 
@@ -279,6 +282,9 @@ export function useSelfieCamera() {
 
 	/* Background removal pipeline */
 	const segmenterRef = useRef<ImageSegmenter | null>(null);
+	const segmenterPromiseRef = useRef<Promise<ImageSegmenter | null> | null>(
+		null,
+	);
 	const segmentationEnabledRef = useRef(true); // flips false permanently on any failure
 	const smallCanvasRef = useRef<HTMLCanvasElement | null>(null);
 	const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -341,20 +347,22 @@ export function useSelfieCamera() {
 		person.height = CANVAS_HEIGHT;
 		personCanvasRef.current = person;
 
-		getSegmenter()
+		segmenterPromiseRef.current = getSegmenter()
 			.then((segmenter) => {
 				if (!mountedRef.current) {
 					segmenter?.close();
-					return;
+					return null;
 				}
 				if (!segmenter) {
 					segmentationEnabledRef.current = false;
-					return;
+					return null;
 				}
 				segmenterRef.current = segmenter;
+				return segmenter;
 			})
 			.catch(() => {
 				segmentationEnabledRef.current = false;
+				return null;
 			});
 
 		return () => {
@@ -370,7 +378,7 @@ export function useSelfieCamera() {
 	}, [stopStream]);
 
 	/* Draw one frame: booth background + person cut out on top (or plain video if unavailable) */
-	const drawFrame = useCallback(() => {
+	const drawFrame = useCallback(async () => {
 		if (phaseRef.current !== "live") return;
 
 		const canvas = canvasRef.current;
@@ -481,7 +489,7 @@ export function useSelfieCamera() {
 				smallCtx.restore();
 
 				try {
-					segmentAndPaintMask(
+					await segmentAndPaintMask(
 						segmenterRef.current!,
 						small,
 						performance.now(),
@@ -584,22 +592,33 @@ export function useSelfieCamera() {
 				return;
 			}
 
-			drawFrame();
+			void Promise.all([
+				segmenterPromiseRef.current,
+				waitForBoothBackgroundCanvas(),
+			]).then(async () => {
+				// Ensure the exported frame uses a fresh foreground mask rather
+				// than the mask from an earlier live-preview frame.
+				frameCounterRef.current = 1;
+				await drawFrame();
 
-			canvas.toBlob(
-				(blob) => {
-					if (!blob) {
-						resolve(null);
-						return;
-					}
+				canvas.toBlob(
+					(blob) => {
+						if (!blob) {
+							resolve(null);
+							return;
+						}
 
-					stopStream();
-					setPhase("captured");
-					resolve(blob);
-				},
-				"image/jpeg",
-				0.92,
-			);
+						stopStream();
+						setPhase("captured");
+						resolve(blob);
+					},
+					"image/jpeg",
+					0.92,
+				);
+			}).catch((error) => {
+				console.error("Selfie capture failed:", error);
+				resolve(null);
+			});
 		});
 	}, [drawFrame, setPhase, stopStream]);
 

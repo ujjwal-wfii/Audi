@@ -735,8 +735,6 @@ export class AuditoriumScene {
 
 			const distanceToScreen = cameraPosition.distanceTo(worldPoint);
 
-			// IMPORTANT:
-			// Use screenRaycaster, not the interactive raycaster.
 			this.screenRaycaster.set(cameraPosition, direction);
 
 			this.screenRaycaster.far = distanceToScreen - 0.1;

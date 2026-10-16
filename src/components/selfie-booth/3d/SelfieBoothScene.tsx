@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
@@ -179,18 +179,50 @@ export default function SelfieBoothScene({
 }: SelfieBoothSceneProps) {
 	const { phase, error, texture, start, capture, drawFrame } =
 		useSelfieCamera();
+	const [countdown, setCountdown] = useState<number | null>(null);
+	const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(
+		null,
+	);
 
 	const handleStart = useCallback(async () => {
 		await start();
 	}, [start]);
 
 	const handleCapture = useCallback(async () => {
+		if (countdown !== null) return;
+
+		setCountdown(3);
+		await new Promise<void>((resolve) => {
+			let remaining = 3;
+			countdownTimerRef.current = setInterval(() => {
+				remaining -= 1;
+				if (remaining <= 0) {
+					if (countdownTimerRef.current) {
+						clearInterval(countdownTimerRef.current);
+						countdownTimerRef.current = null;
+					}
+					setCountdown(null);
+					resolve();
+				} else {
+					setCountdown(remaining);
+				}
+			}, 1000);
+		});
+
 		const blob = await capture();
 
 		if (blob) {
 			onCapture(blob);
 		}
-	}, [capture, onCapture]);
+	}, [capture, countdown, onCapture]);
+
+	useEffect(() => {
+		return () => {
+			if (countdownTimerRef.current) {
+				clearInterval(countdownTimerRef.current);
+			}
+		};
+	}, []);
 
 	/* Retake: parent clears the photo -> restart the camera */
 	const hadPhotoRef = useRef(false);
@@ -320,6 +352,14 @@ export default function SelfieBoothScene({
 							TRY AGAIN
 						</button>
 					</div>
+				</div>
+			)}
+
+			{countdown !== null && (
+				<div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
+					<span className="text-[clamp(6rem,18vw,14rem)] font-black text-white drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+						{countdown}
+					</span>
 				</div>
 			)}
 		</div>

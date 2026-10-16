@@ -7,6 +7,7 @@ const H = 1000;
 
 let cached: HTMLCanvasElement | null = null;
 let imageLoadStarted = false;
+let backgroundReady: Promise<HTMLCanvasElement> | null = null;
 
 function drawFallbackBackground(ctx: CanvasRenderingContext2D) {
 	/* Base wall tone remains visible until the public image finishes loading. */
@@ -14,7 +15,7 @@ function drawFallbackBackground(ctx: CanvasRenderingContext2D) {
 	ctx.fillRect(0, 0, W, H);
 
 	const key = ctx.createRadialGradient(
-		W * 0.72,
+		W * 0.5,
 		H * 0.05,
 		0,
 		W * 0.72,
@@ -88,25 +89,39 @@ export function getBoothBackgroundCanvas(): HTMLCanvasElement {
 
 	if (!imageLoadStarted) {
 		imageLoadStarted = true;
-		const image = new Image();
-		image.onload = () => {
-			if (cached !== canvas) return;
-			const imageContext = canvas.getContext("2d");
-			if (imageContext) drawCoverImage(imageContext, image);
-		};
-		image.onerror = () => {
-			console.error("Selfie booth background failed to load:", image.src);
-		};
-		image.src = "/selfie-booth/backgroundImage.png";
+		backgroundReady = new Promise((resolve) => {
+			const image = new Image();
+			image.onload = () => {
+				if (cached === canvas) {
+					const imageContext = canvas.getContext("2d");
+					if (imageContext) drawCoverImage(imageContext, image);
+				}
+				resolve(canvas);
+			};
+			image.onerror = () => {
+				console.error(
+					"Selfie booth background failed to load:",
+					image.src,
+				);
+				resolve(canvas);
+			};
+			image.src = "/selfie-booth/backgroundImage.png";
+		});
 	}
 
 	return canvas;
+}
+
+export function waitForBoothBackgroundCanvas(): Promise<HTMLCanvasElement> {
+	const canvas = getBoothBackgroundCanvas();
+	return backgroundReady ?? Promise.resolve(canvas);
 }
 
 /* Only needed if you want to force a re-generate (e.g. after a theme change) */
 export function resetBoothBackgroundCache() {
 	cached = null;
 	imageLoadStarted = false;
+	backgroundReady = null;
 }
 
 /* Convenience: an actual THREE texture version, if you ever want it on a mesh too */

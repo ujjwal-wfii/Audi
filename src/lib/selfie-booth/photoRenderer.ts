@@ -1,6 +1,7 @@
 // lib/selfie-booth/photoRenderer.ts
 
 import type { SelfieTemplate } from "./templates";
+import { drawTemplateOverlay } from "@/components/selfie-booth/3d/SelfieTemplates";
 
 export async function generateFinalPhoto(
 	selfie: Blob,
@@ -10,12 +11,9 @@ export async function generateFinalPhoto(
 
 	try {
 		const selfieImage = await loadImage(selfieUrl);
-		const background = await loadImage(template.background);
-
 		const canvas = document.createElement("canvas");
-
-		canvas.width = background.width;
-		canvas.height = background.height;
+		canvas.width = selfieImage.width;
+		canvas.height = selfieImage.height;
 
 		const context = canvas.getContext("2d");
 
@@ -23,24 +21,8 @@ export async function generateFinalPhoto(
 			throw new Error("Unable to create canvas context");
 		}
 
-		context.drawImage(background, 0, 0, canvas.width, canvas.height);
-
-		// We'll define the exact selfie position after
-		// designing the three templates.
-		const photoWidth = canvas.width * 0.8;
-		const photoHeight =
-			photoWidth * (selfieImage.height / selfieImage.width);
-
-		const photoX = (canvas.width - photoWidth) / 2;
-		const photoY = canvas.height * 0.12;
-
-		context.drawImage(selfieImage, photoX, photoY, photoWidth, photoHeight);
-
-		if (template.frame) {
-			const frame = await loadImage(template.frame);
-
-			context.drawImage(frame, 0, 0, canvas.width, canvas.height);
-		}
+		context.drawImage(selfieImage, 0, 0, canvas.width, canvas.height);
+		drawTemplateOverlay(context, canvas.width, canvas.height, template.id);
 
 		return await canvasToBlob(canvas);
 	} finally {
@@ -68,6 +50,6 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 			}
 
 			resolve(blob);
-		}, "image/png");
+		}, "image/jpeg", 0.92);
 	});
 }
