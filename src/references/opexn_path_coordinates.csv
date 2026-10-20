@@ -1,0 +1,14 @@
+id,center_x,center_y,center_z,width,height,depth,min_x,max_x,min_z,max_z,purpose
+MainAisle,0,0.02,0.5,8,0.04,64,-4.0,4.0,-31.5,32.5,main north-south aisle
+CrossA_Left,-16,0.02,15,24,0.04,4,-28.0,-4.0,13.0,17.0,connect left block to main aisle
+CrossA_Right,16,0.02,15,24,0.04,4,4.0,28.0,13.0,17.0,connect right block to main aisle
+CrossB_Left,-16,0.02,-4,24,0.04,4,-28.0,-4.0,-6.0,-2.0,connect left block to main aisle
+CrossB_Right,16,0.02,-4,24,0.04,4,4.0,28.0,-6.0,-2.0,connect right block to main aisle
+CrossC_Left,-16,0.02,-18,24,0.04,4,-28.0,-4.0,-20.0,-16.0,connect left block to main aisle
+CrossC_Right,16,0.02,-18,24,0.04,4,4.0,28.0,-20.0,-16.0,connect right block to main aisle
+EntryFoyer,-17,0.02,28,22,0.04,8,-28.0,-6.0,24.0,32.0,registration and entry foyer
+EntryConnector,0,0.02,28,8,0.04,10,-4.0,4.0,23.0,33.0,main entrance to main aisle
+Exit_Left_A,-28.5,0.02,15,3,0.04,4,-30.0,-27.0,13.0,17.0,left perimeter exit
+Exit_Left_B,-28.5,0.02,-4,3,0.04,4,-30.0,-27.0,-6.0,-2.0,left perimeter exit
+Exit_Left_C,-28.5,0.02,-18,3,0.04,4,-30.0,-27.0,-20.0,-16.0,left perimeter exit
+Exit_Right_B,28.5,0.02,-4,3,0.04,4,27.0,30.0,-6.0,-2.0,right perimeter exit
