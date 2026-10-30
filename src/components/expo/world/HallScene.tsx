@@ -21,10 +21,10 @@ import Ceiling from "./Ceiling";
 const layout = hallLayoutJson as HallLayout;
 
 const stallColors: Record<StallType, string> = {
-	small: "#5598d1",
-	medium: "#e6a23c",
-	large: "#8a70d2",
-	special: "#ef9a9a",
+	small: "#2F7F7B",
+	medium: "#C88A3D",
+	large: "#7564A8",
+	special: "#C56A72",
 };
 
 const PLAYER_RADIUS = 0.42;
