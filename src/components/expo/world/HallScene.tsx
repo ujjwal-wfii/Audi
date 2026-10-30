@@ -1,6 +1,5 @@
 "use client";
 
-import { Text } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -11,6 +10,13 @@ import type {
 	HallPath,
 	StallType,
 } from "@/lib/expo/layout/schema";
+// import Ceiling from "./Ceiling";
+import LargeStall from "../stalls/LargeStall";
+import MediumStall from "../stalls/MediumStall";
+import SmallStall from "../stalls/SmallStall";
+import SpecialStall from "../stalls/SpecialStall";
+import type { StallVisualProps } from "../stalls/stallTypes";
+import Ceiling from "./Ceiling";
 
 const layout = hallLayoutJson as HallLayout;
 
@@ -22,15 +28,37 @@ const stallColors: Record<StallType, string> = {
 };
 
 const PLAYER_RADIUS = 0.42;
-const WALK_SPEED = 2.2;
+const WALK_SPEED = 2.9;
 const RUN_SPEED = 4.4;
-const EYE_HEIGHT = 1.65;
+const EYE_HEIGHT = 2;
 const MOUSE_SENSITIVITY = 0.0022;
 const MAX_PITCH = Math.PI / 2.3;
-const MOVEMENT_TURN_SPEED = 2.4;
-const MAX_MOVEMENT_TURN_RATE = 2.2;
+// const MOVEMENT_TURN_SPEED = 2.4;
+// const MAX_MOVEMENT_TURN_RATE = 2.2;
 
 type Rect = { minX: number; maxX: number; minZ: number; maxZ: number };
+type StallFrontDirection = "positive-z" | "negative-z";
+
+const explicitStallFrontDirections: Record<string, StallFrontDirection> = {
+	S11: "negative-z",
+	S12: "negative-z",
+	S13: "negative-z",
+	S14: "negative-z",
+	S15: "negative-z",
+	S16: "negative-z",
+	S17: "negative-z",
+	S18: "negative-z",
+	S19: "negative-z",
+	S20: "negative-z",
+	SP3: "negative-z",
+	SP4: "negative-z",
+	L3: "negative-z",
+	L4: "negative-z",
+	M11: "negative-z",
+	M12: "negative-z",
+	M13: "negative-z",
+	M14: "negative-z",
+};
 
 function circleHitsRect(x: number, z: number, radius: number, rect: Rect) {
 	const nearestX = THREE.MathUtils.clamp(x, rect.minX, rect.maxX);
@@ -41,32 +69,24 @@ function circleHitsRect(x: number, z: number, radius: number, rect: Rect) {
 function StallBlock({ stall }: { stall: Stall }) {
 	const [width, height, depth] = layout.stall_sizes[stall.type];
 	const [x, , z] = stall.center;
+	const frontDirection = explicitStallFrontDirections[stall.id];
+	const rotationY = frontDirection === "negative-z" ? Math.PI : 0;
+	const props: StallVisualProps = {
+		stall,
+		rotationY,
+		size: [width, height, depth],
+		color: stallColors[stall.type],
+	};
+	const StallComponent = {
+		small: SmallStall,
+		medium: MediumStall,
+		large: LargeStall,
+		special: SpecialStall,
+	}[stall.type];
 
 	return (
 		<group position={[x, 0, z]}>
-			<mesh position={[0, height / 2, 0]} castShadow>
-				<boxGeometry args={[width, height, depth]} />
-				<meshStandardMaterial
-					color={stallColors[stall.type]}
-					roughness={0.84}
-				/>
-			</mesh>
-			<Text
-				position={[
-					0,
-					Math.min(height - 0.25, height * 0.72),
-					depth / 2 + 0.04,
-				]}
-				fontSize={Math.min(0.8, Math.max(0.42, width * 0.09))}
-				maxWidth={Math.max(1, width - 0.5)}
-				color="#ffffff"
-				anchorX="center"
-				anchorY="middle"
-				outlineWidth={0.025}
-				outlineColor="#263449"
-			>
-				{stall.id}
-			</Text>
+			<StallComponent {...props} />
 		</group>
 	);
 }
@@ -162,204 +182,8 @@ function HallWalls() {
 	);
 }
 
-// function PlayerController() {
-// 	const playerRef = useRef<THREE.Group>(null);
-// 	const keys = useRef<Record<string, boolean>>({});
-// 	const yaw = useRef(0);
-// 	const pitch = useRef(-0.08);
-// 	const lastMouseMove = useRef(0);
-// 	const { camera, gl } = useThree();
-
-// 	const blockers = useMemo<Rect[]>(
-// 		() =>
-// 			layout.stalls.map((stall) => ({
-// 				minX: stall.footprint_x[0],
-// 				maxX: stall.footprint_x[1],
-// 				minZ: stall.footprint_z[0],
-// 				maxZ: stall.footprint_z[1],
-// 			})),
-// 		[],
-// 	);
-
-// 	useEffect(() => {
-// 		const canvas = gl.domElement;
-// 		const lockPointer = () => {
-// 			if (document.pointerLockElement !== canvas) {
-// 				canvas.requestPointerLock();
-// 			}
-// 		};
-// 		const onMouseMove = (event: MouseEvent) => {
-// 			if (document.pointerLockElement !== canvas) return;
-// 			const mx = THREE.MathUtils.clamp(event.movementX, -100, 100);
-// 			const my = THREE.MathUtils.clamp(event.movementY, -100, 100);
-// 			yaw.current -= mx * MOUSE_SENSITIVITY;
-// 			pitch.current = THREE.MathUtils.clamp(
-// 				pitch.current - my * MOUSE_SENSITIVITY,
-// 				-MAX_PITCH,
-// 				MAX_PITCH,
-// 			);
-// 			lastMouseMove.current = performance.now();
-// 		};
-
-// 		canvas.addEventListener("click", lockPointer);
-// 		document.addEventListener("mousemove", onMouseMove);
-// 		return () => {
-// 			canvas.removeEventListener("click", lockPointer);
-// 			document.removeEventListener("mousemove", onMouseMove);
-// 		};
-// 	}, [gl]);
-
-// 	useEffect(() => {
-// 		const onDown = (event: KeyboardEvent) => {
-// 			const key = event.key.toLowerCase();
-// 			if (
-// 				[
-// 					"arrowup",
-// 					"arrowdown",
-// 					"arrowleft",
-// 					"arrowright",
-// 					" ",
-// 				].includes(key)
-// 			) {
-// 				event.preventDefault();
-// 			}
-// 			keys.current[key] = true;
-// 		};
-// 		const onUp = (event: KeyboardEvent) => {
-// 			keys.current[event.key.toLowerCase()] = false;
-// 		};
-// 		const clear = () => {
-// 			keys.current = {};
-// 		};
-
-// 		window.addEventListener("keydown", onDown, { passive: false });
-// 		window.addEventListener("keyup", onUp);
-// 		window.addEventListener("blur", clear);
-// 		return () => {
-// 			window.removeEventListener("keydown", onDown);
-// 			window.removeEventListener("keyup", onUp);
-// 			window.removeEventListener("blur", clear);
-// 		};
-// 	}, []);
-
-// 	useEffect(() => {
-// 		const [x, y, z] = layout.player_spawn.position;
-// 		playerRef.current?.position.set(x, y, z);
-// 	}, []);
-
-// 	useFrame((_, rawDelta) => {
-// 		const player = playerRef.current;
-// 		if (!player) return;
-
-// 		const delta = Math.min(rawDelta, 0.05);
-// 		const k = keys.current;
-
-// 		// World-relative input: W = -Z, S = +Z, A = -X, D = +X
-// 		let ix =
-// 			Number(Boolean(k.d || k.arrowright)) -
-// 			Number(Boolean(k.a || k.arrowleft));
-// 		let iz =
-// 			Number(Boolean(k.s || k.arrowdown)) -
-// 			Number(Boolean(k.w || k.arrowup));
-// 		const length = Math.hypot(ix, iz);
-
-// 		if (length > 0) {
-// 			ix /= length;
-// 			iz /= length;
-
-// 			const speed = k.shift ? RUN_SPEED : WALK_SPEED;
-// 			const distance = speed * delta;
-// 			const dx = ix * distance;
-// 			const dz = iz * distance;
-// 			const p = player.position;
-
-// 			// Resolve X and Z separately for wall/stall sliding
-// 			const nextX = THREE.MathUtils.clamp(
-// 				p.x + dx,
-// 				layout.hall.min.x + PLAYER_RADIUS,
-// 				layout.hall.max.x - PLAYER_RADIUS,
-// 			);
-// 			if (
-// 				!blockers.some((r) =>
-// 					circleHitsRect(nextX, p.z, PLAYER_RADIUS, r),
-// 				)
-// 			)
-// 				p.x = nextX;
-
-// 			const nextZ = THREE.MathUtils.clamp(
-// 				p.z + dz,
-// 				layout.hall.min.z + PLAYER_RADIUS,
-// 				layout.hall.max.z - PLAYER_RADIUS,
-// 			);
-// 			if (
-// 				!blockers.some((r) =>
-// 					circleHitsRect(p.x, nextZ, PLAYER_RADIUS, r),
-// 				)
-// 			)
-// 				p.z = nextZ;
-
-// 			// Turn the view toward the input direction (not the blocked/slid one),
-// 			// but not while the user is actively moving the mouse.
-// 			const mouseActive = performance.now() - lastMouseMove.current < 150;
-// 			if (!mouseActive) {
-// 				const targetYaw = Math.atan2(-ix, -iz);
-// 				const yawDelta =
-// 					THREE.MathUtils.euclideanModulo(
-// 						targetYaw - yaw.current + Math.PI,
-// 						Math.PI * 2,
-// 					) - Math.PI;
-// 				const easedTurn =
-// 					yawDelta * (1 - Math.exp(-MOVEMENT_TURN_SPEED * delta));
-// 				yaw.current += THREE.MathUtils.clamp(
-// 					easedTurn,
-// 					-MAX_MOVEMENT_TURN_RATE * delta,
-// 					MAX_MOVEMENT_TURN_RATE * delta,
-// 				);
-// 			}
-// 		}
-
-// 		player.rotation.y = yaw.current;
-
-// 		camera.position.set(
-// 			player.position.x,
-// 			player.position.y + EYE_HEIGHT,
-// 			player.position.z,
-// 		);
-// 		camera.rotation.set(pitch.current, yaw.current, 0, "YXZ");
-// 	});
-
-// 	return (
-// 		<group
-// 			ref={playerRef}
-// 			position={layout.player_spawn.position}
-// 			visible={false}
-// 		>
-// 			<mesh position={[0, 0.78, 0]} castShadow>
-// 				<capsuleGeometry args={[0.34, 0.72, 4, 8]} />
-// 				<meshStandardMaterial color="#0f766e" roughness={0.7} />
-// 			</mesh>
-// 			<mesh position={[0, 1.45, 0]} castShadow>
-// 				<sphereGeometry args={[0.25, 12, 10]} />
-// 				<meshStandardMaterial color="#f2c6a0" roughness={0.8} />
-// 			</mesh>
-// 			<mesh position={[0, 0.95, -0.29]}>
-// 				<boxGeometry args={[0.2, 0.14, 0.12]} />
-// 				<meshStandardMaterial color="#f8fafc" />
-// 			</mesh>
-// 			<mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-// 				<ringGeometry args={[0.48, 0.58, 24]} />
-// 				<meshBasicMaterial color="#14b8a6" />
-// 			</mesh>
-// 		</group>
-// 	);
-// }
-// Tuning constants (add near your other constants)
 const ACCELERATION = 10; // higher = snappier start/stop
 const TURN_SPEED = 1.8; // rad/s for arrow-key turning
-const BOB_FREQUENCY = 1.9; // steps per metre travelled
-const BOB_HEIGHT = 0.035; // vertical bob in metres
-const BOB_SWAY = 0.02; // side-to-side sway in metres
-const RUN_BOB_SCALE = 1.4; // bigger bob when running
 
 function PlayerController() {
 	const playerRef = useRef<THREE.Group>(null);
@@ -367,8 +191,6 @@ function PlayerController() {
 	const yaw = useRef(0);
 	const pitch = useRef(-0.08);
 	const velocity = useRef(new THREE.Vector2(0, 0)); // x, z in world space
-	const bobPhase = useRef(0);
-	const bobAmount = useRef(0); // smoothed 0..1 so the bob fades in/out
 	const { camera, gl } = useThree();
 
 	const blockers = useMemo<Rect[]>(
@@ -465,9 +287,11 @@ function PlayerController() {
 			TURN_SPEED *
 			delta;
 
-		// Input relative to where you are looking
-		// Backward movement is intentionally disabled.
-		let forward = Number(Boolean(k.w || k.arrowup));
+		// Input relative to where you are looking.
+		// Positive values move forward; negative values move backward.
+		let forward =
+			Number(Boolean(k.w || k.arrowup)) -
+			Number(Boolean(k.s || k.arrowdown));
 		let strafe = Number(Boolean(k.d)) - Number(Boolean(k.a));
 		const length = Math.hypot(forward, strafe);
 		if (length > 1) {
@@ -523,38 +347,10 @@ function PlayerController() {
 			}
 		}
 
-		// Head bob, driven by actual distance travelled
-		const speed = vel.length();
-		const moving = speed > 0.1;
-		const targetBob = moving
-			? Math.min(speed / WALK_SPEED, RUN_SPEED / WALK_SPEED)
-			: 0;
-		bobAmount.current +=
-			(targetBob - bobAmount.current) * (1 - Math.exp(-8 * delta));
-		if (moving) {
-			bobPhase.current += speed * delta * BOB_FREQUENCY * Math.PI;
-		}
-		const runScale = k.shift ? RUN_BOB_SCALE : 1;
-		const bobY =
-			Math.abs(Math.sin(bobPhase.current)) *
-			BOB_HEIGHT *
-			bobAmount.current *
-			runScale;
-		const bobX =
-			Math.cos(bobPhase.current) *
-			BOB_SWAY *
-			bobAmount.current *
-			runScale;
-
 		// Body faces where you look
 		player.rotation.y = yaw.current;
 
-		// Camera: eye height + bob (sway applied sideways relative to view)
-		camera.position.set(
-			p.x + cos * bobX,
-			p.y + EYE_HEIGHT + bobY,
-			p.z - sin * bobX,
-		);
+		camera.position.set(p.x, p.y + EYE_HEIGHT, p.z);
 		camera.rotation.set(pitch.current, yaw.current, 0, "YXZ");
 	});
 
@@ -608,6 +404,7 @@ export default function HallScene() {
 				<StallBlock key={stall.id} stall={stall} />
 			))}
 			<HallWalls />
+			<Ceiling hall={hallLayoutJson.hall} />
 			<PlayerController />
 		</>
 	);
