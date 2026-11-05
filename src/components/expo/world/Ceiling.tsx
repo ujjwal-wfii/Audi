@@ -29,7 +29,7 @@ type CeilingProps = {
 const CEILING_URL = "/textures/ceiling/ceiling_grid.jpg";
 
 // The tile is 1122 x 566 px. Keeping this ratio stops the pattern being stretched.
-const TILE_ASPECT = 566 / 1122;
+const TILE_ASPECT = 866 / 822;
 
 export default function Ceiling({
 	hall,

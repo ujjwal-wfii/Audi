@@ -1,11 +1,17 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import {
+	mergeGeometries,
+	mergeVertices,
+} from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { StallVisualProps } from "./stallTypes";
 import ReceptionistModel from "./ReceptionistModel";
+import ShelfModel from "./ShelfModel";
 
 /**
  * SmallStall: visual model of one small stall (metres, origin = footprint centre,
@@ -73,7 +79,9 @@ const DEFAULT_ACCENT = "#2F7F7B";
 
 const FLOOR_T = 0.12;
 const CARPET_T = 0.015;
-const FLOOR_TOP = FLOOR_T + CARPET_T;
+const PLATFORM_T = 0.06;
+const BASE_TOP = PLATFORM_T + FLOOR_T;
+const FLOOR_TOP = BASE_TOP + CARPET_T;
 const BEAM = 0.12;
 const BACK_WALL_T = 0.1;
 
@@ -85,6 +93,7 @@ const BRAND_DROP = 0.3;
 // y/rotation/scale are the values you had; gap = distance behind the counter.
 const RECEPTIONIST_Y = 1;
 const RECEPTIONIST_GAP = 0.45;
+const DETAIL_DISTANCE = 18;
 
 const C = {
 	frame: "#F8F8F5",
@@ -105,6 +114,7 @@ const C = {
 	canopyInner: "#F5F6F7",
 	counterShadow: "#D7DBE0",
 	blueTrim: "#2F7F7B",
+	accentSoft: "#B7D8D2",
 	white: "#FFFFFF",
 	black: "#000000",
 } as const;
@@ -279,6 +289,22 @@ const box = (
 	return paint(g, hex);
 };
 
+const roundedBox = (
+	sx: number,
+	sy: number,
+	sz: number,
+	x: number,
+	y: number,
+	z: number,
+	hex: string,
+	bevel = 0.025,
+) => {
+	const radius = Math.min(bevel, sx / 2, sy / 2, sz / 2);
+	const g = mergeVertices(new RoundedBoxGeometry(sx, sy, sz, 1, radius));
+	g.translate(x, y, z);
+	return paint(g, hex);
+};
+
 const cyl = (
 	r: number,
 	h: number,
@@ -317,7 +343,7 @@ const fasciaHeight = (h: number) => THREE.MathUtils.clamp(h * 0.13, 0.3, 0.5);
 function computeLayout(w: number, h: number, d: number) {
 	const innerW = w - 2 * BEAM;
 	const wallTop = h - BEAM;
-	const wallH = wallTop - FLOOR_T;
+	const wallH = wallTop - BASE_TOP;
 	const B = -d / 2;
 	const F = d / 2;
 	const zIn = B + BACK_WALL_T;
@@ -389,7 +415,7 @@ function buildBody(
 		cx,
 		cz,
 	} = computeLayout(w, h, d);
-	const wallMidY = FLOOR_T + wallH / 2;
+	const wallMidY = BASE_TOP + wallH / 2;
 
 	const buckets: Record<StallSlot, THREE.BufferGeometry[]> = {
 		flat: [],
@@ -410,7 +436,10 @@ function buildBody(
 	};
 
 	// ---- Floor platform, carpet (texture: floor), entrance threshold ----------
-	add(box(w, FLOOR_T, d, 0, FLOOR_T / 2, 0, C.floor));
+	// Raised platform gives every stall a readable footprint and a soft shadow
+	// line between neighboring stalls.
+	add(roundedBox(w + 0.12, 0.06, d + 0.12, 0, 0.03, 0, C.divider, 0.035));
+	add(roundedBox(w, FLOOR_T, d, 0, 0.06 + FLOOR_T / 2, 0, C.floor, 0.018));
 	const carpetLen = F - 0.1 - zIn;
 	add(
 		box(
@@ -418,15 +447,15 @@ function buildBody(
 			CARPET_T,
 			carpetLen,
 			0,
-			FLOOR_T + CARPET_T / 2,
+			BASE_TOP + CARPET_T / 2,
 			zIn + carpetLen / 2,
 			SLOT_DEFS.floor.fallback,
 		),
 		"floor",
 	);
-	add(box(innerW, 0.03, 0.1, 0, FLOOR_T + 0.015, F - 0.05, C.frame));
+	add(box(innerW, 0.03, 0.1, 0, BASE_TOP + 0.015, F - 0.05, C.frame));
 	// UI: thin accent line on the threshold so the entrance reads clearly.
-	add(box(innerW, 0.004, 0.02, 0, FLOOR_T + 0.032, F - 0.05, accent));
+	add(box(innerW, 0.004, 0.02, 0, BASE_TOP + 0.032, F - 0.05, accent));
 
 	// ---- Walls: left, right, back (texture: wall) ------------------------------
 	const sideLen = d - BEAM;
@@ -473,14 +502,14 @@ function buildBody(
 	const inX = innerW / 2;
 	const sideStart = zIn + TRIM;
 	const sideRun = F - BEAM - sideStart;
-	const wallTop2 = FLOOR_T + wallH;
+	const wallTop2 = BASE_TOP + wallH;
 	add(
 		box(
 			innerW - 2 * TRIM,
 			0.1,
 			0.02,
 			0,
-			FLOOR_TOP + 0.05,
+			BASE_TOP + 0.05,
 			zIn + 0.01,
 			C.skirt,
 		),
@@ -514,7 +543,7 @@ function buildBody(
 				0.1,
 				sideRun,
 				s * (inX - 0.01),
-				FLOOR_TOP + 0.05,
+				BASE_TOP + 0.05,
 				sideStart + sideRun / 2,
 				C.skirt,
 			),
@@ -696,7 +725,7 @@ function buildBody(
 			C.screenHousing,
 		),
 	); // housing
-	add(box(brandW, brandH, 0.004, 0, brandY, zIn + 0.042, C.screenFace));
+	add(box(brandW, brandH, 0.004, 0, brandY, zIn + 0.042, C.screenHousing));
 	// A slim lower rail separates the branding panel from the screen zone.
 	// add(
 	// 	box(
@@ -732,7 +761,7 @@ function buildBody(
 	// panel
 	const shelfW = Math.min(0.8, innerW / 2 - (sw / 2 + 0.04) - 0.25);
 	if (shelfW > 0.35) {
-		for (const s of [-1, 1]) {
+		for (const s of [1]) {
 			const x = s * (sw / 2 + 0.04 + 0.15 + shelfW / 2);
 			[sy - 0.25, sy + 0.25].forEach((y, i) => {
 				add(box(shelfW, 0.04, 0.24, x, y, zIn + 0.12, C.shelf));
@@ -750,6 +779,20 @@ function buildBody(
 			});
 		}
 	}
+	const x = -1 * (sw / 2 + 0.04 + 0.15 + shelfW / 2);
+	[sy - 0.25, sy + 0.25].forEach((y, i) => {
+		add(
+			box(
+				0.18,
+				0.2,
+				0.12,
+				x + (i ? -0.15 : 0.15) * -1,
+				y + 0.1,
+				zIn + 0.62,
+				i ? C.dark : accent,
+			),
+		);
+	});
 
 	// ---- Side wall accent strips ------------------------------------------------
 	// FIX: strips were centred 0.01 off the wall face, so they floated 5 mm in
@@ -773,7 +816,7 @@ function buildBody(
 			wallH * 0.8,
 			d * 0.8,
 			-1 * (innerW / 2 - 0.01),
-			FLOOR_T + wallH * 0.5,
+			BASE_TOP + wallH * 0.5,
 			0 * d,
 			accent,
 		),
@@ -784,7 +827,7 @@ function buildBody(
 			wallH * 0.4,
 			d * 0.4,
 			1 * (innerW / 2 - 0.01),
-			FLOOR_T + wallH * 0.5,
+			BASE_TOP + wallH * 0.5,
 			0 * d,
 			accent,
 		),
@@ -817,7 +860,7 @@ function buildBody(
 		),
 	);
 	add(
-		box(
+		roundedBox(
 			cw + 0.1,
 			0.065,
 			cd + 0.1,
@@ -825,6 +868,21 @@ function buildBody(
 			FLOOR_TOP + bodyH + 0.0325,
 			cz,
 			C.counterTop,
+			0.035,
+		),
+	);
+	// Soft accent light strip under the counter makes the front panel readable
+	// without adding another real-time light.
+	add(
+		roundedBox(
+			cw * 0.78,
+			0.022,
+			0.025,
+			cx,
+			FLOOR_TOP + bodyH - 0.035,
+			cz + cd / 2 + 0.025,
+			C.accentSoft,
+			0.01,
 		),
 	);
 	// Slim blue reveal beneath the countertop and a recessed-looking toe kick.
@@ -864,52 +922,6 @@ function buildBody(
 		add(cyl(0.02, pole, 6, x, FLOOR_TOP + base + pole / 2, z, C.trim));
 		add(cyl(0.17, seat, 8, x, FLOOR_TOP + seatTop - seat / 2, z, seatHex));
 	};
-
-	// // ---- Roll-up banner (left) ----------------------------------------------------
-	// const bx = L + BEAM + 0.6;
-	// const bz = 0.15 * d;
-	// const bannerH = Math.min(1.9, h - fasciaH - FLOOR_TOP - 0.25);
-	// add(box(0.85, 0.05, 0.2, bx, FLOOR_TOP + 0.025, bz + 1.8, C.dark));
-	// const bannerZ = bz + 1.8; // Intentional front-left display position in the current layout.
-	// const bannerY = FLOOR_TOP + 0.05 + bannerH / 2;
-	// add(box(0.8, bannerH, 0.03, bx, bannerY, bannerZ, accent));
-	// // Narrow dark rails and a top cassette give the banner a real roll-up stand look.
-	// add(
-	// 	box(
-	// 		0.025,
-	// 		bannerH,
-	// 		0.045,
-	// 		bx - 0.405,
-	// 		bannerY,
-	// 		bannerZ + 0.006,
-	// 		C.dark,
-	// 	),
-	// );
-	// add(
-	// 	box(
-	// 		0.025,
-	// 		bannerH,
-	// 		0.045,
-	// 		bx + 0.405,
-	// 		bannerY,
-	// 		bannerZ + 0.006,
-	// 		C.dark,
-	// 	),
-	// );
-	// add(
-	// 	box(
-	// 		0.84,
-	// 		0.03,
-	// 		0.045,
-	// 		bx,
-	// 		bannerY + bannerH / 2 + 0.012,
-	// 		bannerZ + 0.006,
-	// 		C.trim,
-	// 	),
-	// );
-	// // Thin lower cassette remains aligned with the original banner base.
-	// add(box(0.82, 0.035, 0.22, bx, FLOOR_TOP + 0.035, bannerZ, C.dark));
-
 	// ---- Meeting table + 2 stools (right) ------------------------------------------
 	const tx = R - BEAM - 0.9;
 	const tz = -0.15 * d;
@@ -1001,18 +1013,9 @@ function createLabelTexture(text: string) {
 	return texture;
 }
 
-// FIX: the texture used to be created inside useMemo. In React Strict Mode the
-// first (discarded) render created a texture that was never disposed. Creating it
-// in an effect means only a committed texture exists, and it is always disposed.
 function useLabelTexture(text: string) {
-	const [texture, setTexture] = useState<THREE.CanvasTexture | null>(null);
-	useEffect(() => {
-		const t = createLabelTexture(text);
-		setTexture(t);
-		return () => {
-			t?.dispose();
-		};
-	}, [text]);
+	const texture = useMemo(() => createLabelTexture(text), [text]);
+	useEffect(() => () => texture?.dispose(), [texture]);
 	return texture;
 }
 
@@ -1030,6 +1033,9 @@ export default function SmallStall({
 	size,
 	color,
 }: StallVisualProps) {
+	const detailRef = useRef<THREE.Group>(null);
+	const detailCenter = useMemo(() => new THREE.Vector3(), []);
+	const { camera } = useThree();
 	const w = dim(size[0], MIN_W);
 	const h = dim(size[1], MIN_H);
 	const d = dim(size[2], MIN_D);
@@ -1039,18 +1045,21 @@ export default function SmallStall({
 	const materials = useMemo(() => body.slots.map(getSlotMaterial), [body]);
 	const labelTexture = useLabelTexture(stall.id);
 
-	const { zIn, brandY, fasciaH, cx, cz, cd } = computeLayout(w, h, d);
+	const { zIn, brandY, fasciaH, brandW, brandH, cx, cz, cd } = computeLayout(
+		w,
+		h,
+		d,
+	);
 	const { signW, signH } = signSize(w, h);
-	const innerW = w - 2 * BEAM;
-	const canopyDepth = Math.max(0.5, d - 2 * BEAM - 0.04);
-	const stallLightY = h - BEAM / 2 - 0.07 - 0.08;
-	// Kept for the commented-out point lights below.
-	const stallLightPositions: [number, number, number][] = [
-		[-0.25 * innerW, stallLightY, -0.24 * canopyDepth],
-		[0.25 * innerW, stallLightY, -0.24 * canopyDepth],
-		[-0.25 * innerW, stallLightY, 0.24 * canopyDepth],
-		[0.25 * innerW, stallLightY, 0.24 * canopyDepth],
-	];
+
+	useFrame(() => {
+		const detail = detailRef.current;
+		if (!detail) return;
+		detail.getWorldPosition(detailCenter);
+		detail.visible =
+			camera.position.distanceToSquared(detailCenter) <
+			DETAIL_DISTANCE * DETAIL_DISTANCE;
+	});
 
 	return (
 		<group name={`stall-${stall.id}`} rotation={[0, rotationY, 0]}>
@@ -1074,28 +1083,43 @@ export default function SmallStall({
 			{labelTexture && (
 				<mesh
 					geometry={UNIT_PLANE}
-					position={[0, h - fasciaH / 2, d / 2 + 0.002]}
+					// Keep the light sign face in front of the dark fascia housing.
+					position={[0, h - fasciaH / 2, d / 2 + 0.05]}
 					scale={[signW, signH, 1]}
 				>
 					<meshBasicMaterial map={labelTexture} toneMapped={false} />
 				</mesh>
 			)}
-
-			{/* FIX: Suspense so the stall appears immediately while the receptionist model
-			    loads, instead of suspending the whole canvas. Position follows the counter
-			    (x = counter centre, behind the counter) rather than a fixed [0.8, 1, 1.7],
-			    which was outside the stall for depths under about 3.4 m. */}
-			<Suspense fallback={null}>
-				<ReceptionistModel
-					position={[
-						cx,
-						RECEPTIONIST_Y,
-						cz - cd / 2 - RECEPTIONIST_GAP,
-					]}
-					rotation={[0, 0, 0]}
-					scale={0.85}
+			<mesh position={[0, brandY, zIn + 0.048]}>
+				<boxGeometry args={[brandW, brandH, 0.008]} />
+				<meshStandardMaterial
+					color={C.screenFace}
+					emissive={C.screenSheen}
+					emissiveIntensity={0.3}
+					roughness={0.32}
+					metalness={0.08}
 				/>
-			</Suspense>
+			</mesh>
+
+			<group ref={detailRef} name="nearby-stall-details">
+				{/* Keep the receptionist only for nearby stalls to reduce draw and
+				    animation cost across a large hall. */}
+				<Suspense fallback={null}>
+					<ReceptionistModel
+						position={[
+							cx,
+							RECEPTIONIST_Y,
+							cz - cd / 2 - RECEPTIONIST_GAP,
+						]}
+						rotation={[0, 0, 0]}
+						scale={0.85}
+					/>
+					<ShelfModel
+						position={[cx - 1.8, FLOOR_TOP + 0.5, cz - 4.3]}
+						scale={0.8}
+					/>
+				</Suspense>
+			</group>
 
 			{/* Attachment points: logo placement, player interaction spot */}
 			<group name="anchor_logo" position={[0, brandY, zIn + 0.045]} />
