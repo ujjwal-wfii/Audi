@@ -794,22 +794,6 @@ function buildBody(
 		);
 	});
 
-	// ---- Side wall accent strips ------------------------------------------------
-	// FIX: strips were centred 0.01 off the wall face, so they floated 5 mm in
-	// front of it. Now flush with the wall (face at inX, 0.01 thick).
-	// for (const s of [-1, 1]) {
-	// 	// add(
-	// 	// 	box(
-	// 	// 		0.01,
-	// 	// 		wallH * 0.8,
-	// 	// 		d * 0.8,
-	// 	// 		s * (innerW / 2 - 0.005),
-	// 	// 		FLOOR_T + wallH * 0.5,
-	// 	// 		0 * d,
-	// 	// 		accent,
-	// 	// 	),
-	// 	// );
-	// }
 	add(
 		box(
 			0.02,
