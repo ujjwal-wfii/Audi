@@ -266,6 +266,68 @@ function PlayerController() {
 		};
 	}, []);
 
+	// Touch controls dispatch the same movement inputs as the keyboard controls.
+	useEffect(() => {
+		const onMobileControl = (event: Event) => {
+			const { key, pressed } = (
+				event as CustomEvent<{ key?: string; pressed?: boolean }>
+			).detail;
+			if (!key) return;
+			keys.current[key] = Boolean(pressed);
+		};
+
+		window.addEventListener("hall-mobile-control", onMobileControl);
+		return () =>
+			window.removeEventListener("hall-mobile-control", onMobileControl);
+	}, []);
+
+	// Touch-dragging the canvas rotates the first-person camera.
+	useEffect(() => {
+		const canvas = gl.domElement;
+		let lookPointerId: number | null = null;
+		let lastX = 0;
+		let lastY = 0;
+
+		const onPointerDown = (event: PointerEvent) => {
+			if (event.pointerType !== "touch") return;
+			lookPointerId = event.pointerId;
+			lastX = event.clientX;
+			lastY = event.clientY;
+			canvas.setPointerCapture(event.pointerId);
+		};
+		const onPointerMove = (event: PointerEvent) => {
+			if (event.pointerId !== lookPointerId) return;
+			const mx = THREE.MathUtils.clamp(event.clientX - lastX, -100, 100);
+			const my = THREE.MathUtils.clamp(event.clientY - lastY, -100, 100);
+			lastX = event.clientX;
+			lastY = event.clientY;
+			yaw.current -= mx * MOUSE_SENSITIVITY;
+			pitch.current = THREE.MathUtils.clamp(
+				pitch.current - my * MOUSE_SENSITIVITY,
+				-MAX_PITCH,
+				MAX_PITCH,
+			);
+		};
+		const stopLooking = (event: PointerEvent) => {
+			if (event.pointerId !== lookPointerId) return;
+			lookPointerId = null;
+			if (canvas.hasPointerCapture(event.pointerId)) {
+				canvas.releasePointerCapture(event.pointerId);
+			}
+		};
+
+		canvas.addEventListener("pointerdown", onPointerDown);
+		canvas.addEventListener("pointermove", onPointerMove);
+		canvas.addEventListener("pointerup", stopLooking);
+		canvas.addEventListener("pointercancel", stopLooking);
+		return () => {
+			canvas.removeEventListener("pointerdown", onPointerDown);
+			canvas.removeEventListener("pointermove", onPointerMove);
+			canvas.removeEventListener("pointerup", stopLooking);
+			canvas.removeEventListener("pointercancel", stopLooking);
+		};
+	}, [gl]);
+
 	// Spawn
 	useEffect(() => {
 		const [x, y, z] = layout.player_spawn.position;

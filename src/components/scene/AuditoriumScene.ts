@@ -907,7 +907,7 @@ export class AuditoriumScene {
 		plantLoader.setMeshoptDecoder(MeshoptDecoder);
 
 		plantLoader.load(
-			"/models/plant-final.glb", // Recommended: Use plant-final.glb if WebP-compressed
+			"/models/plant-draco.glb", // Recommended: Use plant-final.glb if WebP-compressed
 			(gltf) => {
 				const plantSource = gltf.scene;
 
