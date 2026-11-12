@@ -82,14 +82,14 @@ export default function HallCanvas() {
 			</div>
 
 			<div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-slate-300 sm:bottom-4 sm:left-4">
-				<span className="hidden sm:inline">
+				<span className="hidden lg:inline">
 					Click the hall to capture the mouse · WASD / arrows to walk ·
 					Shift to run · Esc to release
 				</span>
-				<span className="sm:hidden">Drag to look · use the arrows to walk</span>
+				<span className="lg:hidden">Drag to look · use the arrows to walk</span>
 			</div>
 
-			<div className="pointer-events-none absolute bottom-3 right-3 z-10 grid grid-cols-3 gap-2 sm:bottom-5 sm:right-5 sm:hidden">
+			<div className="pointer-events-none absolute bottom-3 right-3 z-10 grid grid-cols-3 gap-2 sm:bottom-5 sm:right-5 lg:hidden">
 				<span />
 				<MobileControl label="Move forward" icon="↑" keyName="arrowup" />
 				<span />

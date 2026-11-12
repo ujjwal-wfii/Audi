@@ -635,7 +635,7 @@ function buildBody(
 				F - 0.055,
 				C.divider,
 			),
-		);
+		); // upper joints between two stalls
 	}
 	add(box(innerW, fasciaH, BEAM, 0, h - fasciaH / 2, F - BEAM / 2, C.frame)); // front fascia
 	add(box(innerW, BEAM, BEAM, 0, h - BEAM / 2, B + BEAM / 2, C.canopy)); // rear canopy beam
@@ -725,7 +725,7 @@ function buildBody(
 			C.screenHousing,
 		),
 	); // housing
-	add(box(brandW, brandH, 0.004, 0, brandY, zIn + 0.042, C.screenHousing));
+	// add(box(brandW, brandH, 0.004, 0, brandY, zIn + 0.042, C.screenHousing));
 	// A slim lower rail separates the branding panel from the screen zone.
 	// add(
 	// 	box(

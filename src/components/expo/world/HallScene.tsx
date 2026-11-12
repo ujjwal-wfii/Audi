@@ -32,7 +32,8 @@ const WALK_SPEED = 2.9;
 const RUN_SPEED = 4.4;
 const EYE_HEIGHT = 2;
 const MOUSE_SENSITIVITY = 0.0022;
-const MAX_PITCH = Math.PI / 2.3;
+// Keep the first-person view within 30 degrees above and below the horizon.
+const MAX_PITCH = THREE.MathUtils.degToRad(15);
 // const MOVEMENT_TURN_SPEED = 2.4;
 // const MAX_MOVEMENT_TURN_RATE = 2.2;
 
