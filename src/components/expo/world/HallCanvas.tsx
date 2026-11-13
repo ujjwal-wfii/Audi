@@ -3,6 +3,7 @@
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useState } from "react";
 import HallScene from "./HallScene";
+import StallInteractionOverlay from "../stalls/StallInteractionOverlay";
 
 type ControlKey = "arrowup" | "arrowdown" | "a" | "d";
 
@@ -77,24 +78,34 @@ export default function HallCanvas() {
 					Exhibition Hall
 				</h1>
 				<p className="mt-1 text-xs text-slate-300">
-					60 m × 65 m · 43 stalls · click to look around
+					60 m × 65 m · 43 stalls · double-click and drag to look
 				</p>
 			</div>
 
 			<div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-slate-300 sm:bottom-4 sm:left-4">
 				<span className="hidden lg:inline">
-					Click the hall to capture the mouse · WASD / arrows to walk ·
-					Shift to run · Esc to release
+					Double-click to enable look mode, then drag · WASD / arrows
+					to walk · Shift to run
 				</span>
-				<span className="lg:hidden">Drag to look · use the arrows to walk</span>
+				<span className="lg:hidden">
+					Drag to look · use the arrows to walk
+				</span>
 			</div>
 
 			<div className="pointer-events-none absolute bottom-3 right-3 z-10 grid grid-cols-3 gap-2 sm:bottom-5 sm:right-5 lg:hidden">
 				<span />
-				<MobileControl label="Move forward" icon="↑" keyName="arrowup" />
+				<MobileControl
+					label="Move forward"
+					icon="↑"
+					keyName="arrowup"
+				/>
 				<span />
 				<MobileControl label="Move left" icon="←" keyName="a" />
-				<MobileControl label="Move backward" icon="↓" keyName="arrowdown" />
+				<MobileControl
+					label="Move backward"
+					icon="↓"
+					keyName="arrowdown"
+				/>
 				<MobileControl label="Move right" icon="→" keyName="d" />
 			</div>
 
@@ -104,10 +115,12 @@ export default function HallCanvas() {
 						<div className="mb-3 text-4xl" aria-hidden="true">
 							↔
 						</div>
-						<h2 className="text-xl font-bold">Rotate your device</h2>
+						<h2 className="text-xl font-bold">
+							Rotate your device
+						</h2>
 						<p className="mt-2 text-sm text-slate-300">
-							This hall is designed for landscape mode. Rotate your
-							device for the best view and controls.
+							This hall is designed for landscape mode. Rotate
+							your device for the best view and controls.
 						</p>
 						<button
 							type="button"
@@ -119,6 +132,7 @@ export default function HallCanvas() {
 					</div>
 				</div>
 			)}
+			<StallInteractionOverlay />
 
 			<Canvas
 				camera={{

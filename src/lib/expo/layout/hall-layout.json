@@ -1,11 +1,4 @@
 {
-	"units": "meters",
-	"coordinate_system": {
-		"x": "left to right",
-		"y": "vertical; floor at 0",
-		"z": "entrance to rear; entrance is positive z",
-		"origin": "hall center in X, approximate middle in Z"
-	},
 	"hall": {
 		"min": {
 			"x": -30,
@@ -49,7 +42,7 @@
 			"type": "special",
 			"center": [-14, 0, -40],
 			"footprint_x": [-24.0, -4.0],
-			"footprint_z": [-42.0, -38.0],
+			"footprint_z": [-42.0, -36.5],
 			"facing": "+z",
 			"entrance_direction": "toward RearAisle"
 		},
@@ -58,7 +51,7 @@
 			"type": "special",
 			"center": [14, 0, -40],
 			"footprint_x": [4.0, 24.0],
-			"footprint_z": [-42.0, -38.0],
+			"footprint_z": [-42.0, -36.5],
 			"facing": "+z",
 			"entrance_direction": "toward RearAisle"
 		},
@@ -67,7 +60,7 @@
 			"type": "special",
 			"center": [-14, 0, 41],
 			"footprint_x": [-24.0, -4.0],
-			"footprint_z": [39.0, 43.0],
+			"footprint_z": [37.5, 43.0],
 			"facing": "-z",
 			"entrance_direction": "toward EntryFoyer"
 		},
@@ -76,7 +69,7 @@
 			"type": "special",
 			"center": [14, 0, 41],
 			"footprint_x": [4.0, 24.0],
-			"footprint_z": [39.0, 43.0],
+			"footprint_z": [37.5, 43.0],
 			"facing": "-z",
 			"entrance_direction": "toward EntryFoyer"
 		},
@@ -85,7 +78,7 @@
 			"type": "large",
 			"center": [-19, 0, 26],
 			"footprint_x": [-24.0, -14.0],
-			"footprint_z": [23.0, 29.0],
+			"footprint_z": [21.5, 29.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -94,7 +87,7 @@
 			"type": "large",
 			"center": [-9, 0, 26],
 			"footprint_x": [-14.0, -4.0],
-			"footprint_z": [23.0, 29.0],
+			"footprint_z": [21.5, 29.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -103,7 +96,7 @@
 			"type": "large",
 			"center": [9, 0, 26],
 			"footprint_x": [4.0, 14.0],
-			"footprint_z": [23.0, 29.0],
+			"footprint_z": [21.5, 29.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -112,7 +105,7 @@
 			"type": "medium",
 			"center": [16.5, 0, 26],
 			"footprint_x": [14.0, 19.0],
-			"footprint_z": [23.0, 29.0],
+			"footprint_z": [21.5, 29.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -121,7 +114,7 @@
 			"type": "medium",
 			"center": [21.5, 0, 26],
 			"footprint_x": [19.0, 24.0],
-			"footprint_z": [23.0, 29.0],
+			"footprint_z": [21.5, 29.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -130,7 +123,7 @@
 			"type": "medium",
 			"center": [-21.5, 0, 11],
 			"footprint_x": [-24.0, -19.0],
-			"footprint_z": [8.0, 14.0],
+			"footprint_z": [8.0, 15.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -139,7 +132,7 @@
 			"type": "medium",
 			"center": [-16.5, 0, 11],
 			"footprint_x": [-19.0, -14.0],
-			"footprint_z": [8.0, 14.0],
+			"footprint_z": [8.0, 15.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -148,7 +141,7 @@
 			"type": "medium",
 			"center": [-11.5, 0, 11],
 			"footprint_x": [-14.0, -9.0],
-			"footprint_z": [8.0, 14.0],
+			"footprint_z": [8.0, 15.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -157,7 +150,7 @@
 			"type": "medium",
 			"center": [-6.5, 0, 11],
 			"footprint_x": [-9.0, -4.0],
-			"footprint_z": [8.0, 14.0],
+			"footprint_z": [8.0, 15.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -166,7 +159,7 @@
 			"type": "medium",
 			"center": [6.5, 0, 11],
 			"footprint_x": [4.0, 9.0],
-			"footprint_z": [8.0, 14.0],
+			"footprint_z": [8.0, 15.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -175,7 +168,7 @@
 			"type": "medium",
 			"center": [11.5, 0, 11],
 			"footprint_x": [9.0, 14.0],
-			"footprint_z": [8.0, 14.0],
+			"footprint_z": [8.0, 15.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -184,7 +177,7 @@
 			"type": "medium",
 			"center": [16.5, 0, 11],
 			"footprint_x": [14.0, 19.0],
-			"footprint_z": [8.0, 14.0],
+			"footprint_z": [8.0, 15.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -193,7 +186,7 @@
 			"type": "medium",
 			"center": [21.5, 0, 11],
 			"footprint_x": [19.0, 24.0],
-			"footprint_z": [8.0, 14.0],
+			"footprint_z": [8.0, 15.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossA"
 		},
@@ -202,7 +195,7 @@
 			"type": "large",
 			"center": [-19, 0, 5],
 			"footprint_x": [-24.0, -14.0],
-			"footprint_z": [2.0, 8.0],
+			"footprint_z": [0.5, 8.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -211,7 +204,7 @@
 			"type": "large",
 			"center": [-9, 0, 5],
 			"footprint_x": [-14.0, -4.0],
-			"footprint_z": [2.0, 8.0],
+			"footprint_z": [0.5, 8.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -220,7 +213,7 @@
 			"type": "medium",
 			"center": [6.5, 0, 5],
 			"footprint_x": [4.0, 9.0],
-			"footprint_z": [2.0, 8.0],
+			"footprint_z": [0.5, 8.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -229,7 +222,7 @@
 			"type": "medium",
 			"center": [11.5, 0, 5],
 			"footprint_x": [9.0, 14.0],
-			"footprint_z": [2.0, 8.0],
+			"footprint_z": [0.5, 8.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -238,7 +231,7 @@
 			"type": "medium",
 			"center": [16.5, 0, 5],
 			"footprint_x": [14.0, 19.0],
-			"footprint_z": [2.0, 8.0],
+			"footprint_z": [0.5, 8.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -247,7 +240,7 @@
 			"type": "medium",
 			"center": [21.5, 0, 5],
 			"footprint_x": [19.0, 24.0],
-			"footprint_z": [2.0, 8.0],
+			"footprint_z": [0.5, 8.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -256,7 +249,7 @@
 			"type": "small",
 			"center": [-22, 0, -10],
 			"footprint_x": [-24.0, -20.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -265,7 +258,7 @@
 			"type": "small",
 			"center": [-18, 0, -10],
 			"footprint_x": [-20.0, -16.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -274,7 +267,7 @@
 			"type": "small",
 			"center": [-14, 0, -10],
 			"footprint_x": [-16.0, -12.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -283,7 +276,7 @@
 			"type": "small",
 			"center": [-10, 0, -10],
 			"footprint_x": [-12.0, -8.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -292,7 +285,7 @@
 			"type": "small",
 			"center": [-6, 0, -10],
 			"footprint_x": [-8.0, -4.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -301,7 +294,7 @@
 			"type": "small",
 			"center": [6, 0, -10],
 			"footprint_x": [4.0, 8.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -310,7 +303,7 @@
 			"type": "small",
 			"center": [10, 0, -10],
 			"footprint_x": [8.0, 12.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -319,7 +312,7 @@
 			"type": "small",
 			"center": [14, 0, -10],
 			"footprint_x": [12.0, 16.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -328,7 +321,7 @@
 			"type": "small",
 			"center": [18, 0, -10],
 			"footprint_x": [16.0, 20.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -337,7 +330,7 @@
 			"type": "small",
 			"center": [22, 0, -10],
 			"footprint_x": [20.0, 24.0],
-			"footprint_z": [-13.0, -7.0],
+			"footprint_z": [-13.0, -5.5],
 			"facing": "+z",
 			"entrance_direction": "toward CrossB"
 		},
@@ -346,7 +339,7 @@
 			"type": "small",
 			"center": [-22, 0, -16],
 			"footprint_x": [-24.0, -20.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -355,7 +348,7 @@
 			"type": "small",
 			"center": [-18, 0, -16],
 			"footprint_x": [-20.0, -16.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -364,7 +357,7 @@
 			"type": "small",
 			"center": [-14, 0, -16],
 			"footprint_x": [-16.0, -12.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -373,7 +366,7 @@
 			"type": "small",
 			"center": [-10, 0, -16],
 			"footprint_x": [-12.0, -8.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -382,7 +375,7 @@
 			"type": "small",
 			"center": [-6, 0, -16],
 			"footprint_x": [-8.0, -4.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -391,7 +384,7 @@
 			"type": "small",
 			"center": [6, 0, -16],
 			"footprint_x": [4.0, 8.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -400,7 +393,7 @@
 			"type": "small",
 			"center": [10, 0, -16],
 			"footprint_x": [8.0, 12.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -409,7 +402,7 @@
 			"type": "small",
 			"center": [14, 0, -16],
 			"footprint_x": [12.0, 16.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -418,7 +411,7 @@
 			"type": "small",
 			"center": [18, 0, -16],
 			"footprint_x": [16.0, 20.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		},
@@ -427,7 +420,7 @@
 			"type": "small",
 			"center": [22, 0, -16],
 			"footprint_x": [20.0, 24.0],
-			"footprint_z": [-19.0, -13.0],
+			"footprint_z": [-20.5, -13.0],
 			"facing": "-z",
 			"entrance_direction": "toward CrossC"
 		}

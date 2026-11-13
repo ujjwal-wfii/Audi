@@ -18,23 +18,26 @@ import SmallStall from "../stalls/SmallStall";
 import SpecialStall from "../stalls/SpecialStall";
 import type { StallVisualProps } from "../stalls/stallTypes";
 import Ceiling from "./Ceiling";
+import StallProximityTracker from "../stalls/StallProximityTracker";
+import { interactionStore } from "@/lib/expo/stall-interactivity/interactionStore";
 
 const layout: HallLayout = hallLayoutJson;
 const HALL_WALL_TEXTURE_URL =
 	"/textures/walls/Geometric Exhibition Hall Wall.png";
-const HALL_END_WALL_TEXTURE_URL =
-	"/textures/walls/front end wall.jpeg";
-const END_WALL_TILE_COUNT = 2;
+// "/textures/walls/front end wall3.jpeg";
 const MAIN_EXIT_WIDTH = 8;
 const MAIN_EXIT_HEIGHT = 4.5;
 
-function createEndWallMaterial(texture: THREE.Texture, repeatX: number) {
+function createEndWallMaterial(
+	texture: THREE.Texture,
+	repeatX: number,
+	repeatY: number,
+	offsetX = 0,
+) {
 	const wallTexture = texture.clone();
 	wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
-	wallTexture.repeat.set(
-		repeatX * END_WALL_TILE_COUNT,
-		END_WALL_TILE_COUNT,
-	);
+	wallTexture.repeat.set(repeatX, repeatY);
+	wallTexture.offset.x = offsetX;
 	wallTexture.colorSpace = THREE.SRGBColorSpace;
 	wallTexture.anisotropy = 16;
 	wallTexture.needsUpdate = true;
@@ -135,116 +138,248 @@ function PathRegion({ path }: { path: HallPath }) {
 	);
 }
 
+const PATTERN_IMAGE_HEIGHT_M = 10; // metres of wall one full image height represents (smaller = finer panels)
+const WALL_SURFACE_OFFSET = 0.01; // pushes walls just outside the hall bounds to avoid z-fighting
+// Zone boundaries as fractions of the image height (rows measured on your 887 px image)
+const BASE_FRAC = 32 / 887; // dark baseboard, bottom
+const BAND_FRAC = 320 / 887; // spotlight zone, top
+const FIELD_FRAC = 1 - BASE_FRAC - BAND_FRAC; // repeating panel area
+
+type Zone = {
+	vMin: number; // image v range (0 = bottom of image, 1 = top)
+	vMax: number;
+	y0: number; // wall height range in metres
+	y1: number;
+	tileH: number; // metres of wall per image tile in this zone
+};
+
+// Pure helper: splits [a,b] at every multiple of `size` counted from `base`.
+function breakpoints(a: number, b: number, base: number, size: number) {
+	const out = [a];
+	for (
+		let k = Math.floor((a - base) / size) + 1;
+		base + k * size < b - 1e-6;
+		k++
+	) {
+		out.push(base + k * size);
+	}
+	out.push(b);
+	return out;
+}
+
+// Pure helper: 0..1 position inside tile `index`, flipped on odd tiles (mirrored repeat).
+function mirrored(value: number, base: number, size: number, index: number) {
+	const frac = (value - base - index * size) / size;
+	return index % 2 === 0 ? frac : 1 - frac;
+}
+
+// Builds a flat, camera-facing mesh for the rectangle [s0,s1] x [y0,y1] of one zone.
+// Each tile cell is its own quad, so mirrored tiles need no texture wrap modes.
+function buildZoneGeometry(
+	s0: number,
+	s1: number,
+	y0: number,
+	y1: number,
+	zone: Zone,
+	sBase: number,
+	tileW: number,
+) {
+	const xs = breakpoints(s0, s1, sBase, tileW);
+	const ys = breakpoints(y0, y1, zone.y0, zone.tileH);
+	const positions: number[] = [];
+	const uvs: number[] = [];
+	const normals: number[] = [];
+	const indices: number[] = [];
+
+	for (let i = 0; i < xs.length - 1; i++) {
+		const ti = Math.floor(((xs[i] + xs[i + 1]) / 2 - sBase) / tileW);
+		for (let j = 0; j < ys.length - 1; j++) {
+			const tj = Math.floor(
+				((ys[j] + ys[j + 1]) / 2 - zone.y0) / zone.tileH,
+			);
+			const base = positions.length / 3;
+			const corners = [
+				[xs[i], ys[j]],
+				[xs[i + 1], ys[j]],
+				[xs[i + 1], ys[j + 1]],
+				[xs[i], ys[j + 1]],
+			];
+			for (const [x, y] of corners) {
+				positions.push(x, y, 0);
+				normals.push(0, 0, 1);
+				uvs.push(
+					mirrored(x, sBase, tileW, ti),
+					zone.vMin +
+						mirrored(y, zone.y0, zone.tileH, tj) *
+							(zone.vMax - zone.vMin),
+				);
+			}
+			indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+		}
+	}
+
+	const geo = new THREE.BufferGeometry();
+	geo.setAttribute(
+		"position",
+		new THREE.Float32BufferAttribute(positions, 3),
+	);
+	geo.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+	geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+	geo.setIndex(indices);
+	return geo;
+}
+
+function useWallMaterial(url: string) {
+	const texture = useTexture(url);
+	const { gl } = useThree();
+
+	return useMemo(() => {
+		const map = texture.clone();
+		map.wrapS = map.wrapT = THREE.ClampToEdgeWrapping; // mirroring is done in the geometry UVs
+		map.colorSpace = THREE.SRGBColorSpace;
+		map.anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
+		map.needsUpdate = true;
+		const image = texture.image as
+			| { width: number; height: number }
+			| undefined;
+		const aspect = image ? image.width / image.height : 2;
+		return {
+			material: new THREE.MeshStandardMaterial({ map, roughness: 0.8 }),
+			aspect,
+		};
+	}, [texture, gl]);
+}
+
+type WallProps = {
+	origin: [number, number, number];
+	rotationY: number; // planes face +z by default; this turns them into the hall
+	length: number;
+	zones: Zone[];
+	tileW: number;
+	material: THREE.Material;
+	door?: { halfWidth: number; height: number };
+};
+
+function Wall({
+	origin,
+	rotationY,
+	length,
+	zones,
+	tileW,
+	material,
+	door,
+}: WallProps) {
+	const half = length / 2;
+	const geometries = useMemo(() => {
+		// rectangles of the wall: [s0, s1, minY]
+		const rects: [number, number, number][] = door
+			? [
+					[-half, -door.halfWidth, 0],
+					[door.halfWidth, half, 0],
+					[-door.halfWidth, door.halfWidth, door.height], // lintel above the opening
+				]
+			: [[-half, half, 0]];
+		const out: THREE.BufferGeometry[] = [];
+		for (const [s0, s1, minY] of rects) {
+			for (const zone of zones) {
+				const y0 = Math.max(zone.y0, minY);
+				if (y0 >= zone.y1 - 1e-6) continue;
+				out.push(
+					buildZoneGeometry(s0, s1, y0, zone.y1, zone, -half, tileW),
+				);
+			}
+		}
+		return out;
+	}, [door, half, zones, tileW]);
+
+	return (
+		<group position={origin} rotation={[0, rotationY, 0]}>
+			{geometries.map((geometry, i) => (
+				<mesh key={i} geometry={geometry} material={material} />
+			))}
+		</group>
+	);
+}
+
 function HallWalls() {
 	const { min, max } = layout.hall;
 	const wallHeight = layout.hall.ceiling_height;
-	const thickness = 0.45;
 	const width = max.x - min.x;
-	const texture = useTexture(HALL_WALL_TEXTURE_URL);
-	const endWallTexture = useTexture(HALL_END_WALL_TEXTURE_URL);
-	const wallMaterial = useMemo(() => {
-		const wallTexture = texture.clone();
-		wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
-		wallTexture.repeat.set(4, 2);
-		wallTexture.colorSpace = THREE.SRGBColorSpace;
-		wallTexture.anisotropy = 16;
-		wallTexture.needsUpdate = true;
-		return new THREE.MeshStandardMaterial({
-			map: wallTexture,
-			roughness: 0.8,
-		});
-	}, [texture]);
-	const endWallMaterials = useMemo(
-		() => [
-			createEndWallMaterial(endWallTexture, width / wallHeight),
-			createEndWallMaterial(
-				endWallTexture,
-				Math.abs(min.x + MAIN_EXIT_WIDTH / 2) / wallHeight,
-			),
-			createEndWallMaterial(
-				endWallTexture,
-				Math.abs(max.x - MAIN_EXIT_WIDTH / 2) / wallHeight,
-			),
-			createEndWallMaterial(
-				endWallTexture,
-				MAIN_EXIT_WIDTH / (wallHeight - MAIN_EXIT_HEIGHT),
-			),
-		],
-		[endWallTexture, max.x, min.x, wallHeight, width],
-	);
+	const depth = max.z - min.z;
+	const centerZ = (min.z + max.z) / 2;
+	const { material, aspect } = useWallMaterial(HALL_WALL_TEXTURE_URL);
 
-	const sideSegments = useMemo(() => {
-		return [min.x, max.x].map((x) => ({
-			x,
-			z: (min.z + max.z) / 2,
-			width: thickness,
-			depth: max.z - min.z,
-		}));
-	}, [min.x, max.x, min.z, max.z]);
+	// Choose a whole number of panel-field tiles so the zones add up to exactly the wall height.
+	const { zones, tileW } = useMemo(() => {
+		const fieldTiles = Math.max(
+			1,
+			Math.round(
+				(wallHeight / PATTERN_IMAGE_HEIGHT_M - BASE_FRAC - BAND_FRAC) /
+					FIELD_FRAC,
+			),
+		);
+		const imageH =
+			wallHeight / (BASE_FRAC + BAND_FRAC + fieldTiles * FIELD_FRAC);
+		const baseH = BASE_FRAC * imageH;
+		const fieldTileH = FIELD_FRAC * imageH;
+		const fieldH = fieldTiles * fieldTileH;
+		const bandH = BAND_FRAC * imageH;
+		const zones: Zone[] = [
+			{ vMin: 0, vMax: BASE_FRAC, y0: 0, y1: baseH, tileH: baseH },
+			{
+				vMin: BASE_FRAC,
+				vMax: BASE_FRAC + FIELD_FRAC,
+				y0: baseH,
+				y1: baseH + fieldH,
+				tileH: fieldTileH,
+			},
+			{
+				vMin: BASE_FRAC + FIELD_FRAC,
+				vMax: 1,
+				y0: baseH + fieldH,
+				y1: wallHeight,
+				tileH: bandH,
+			},
+		];
+		return { zones, tileW: imageH * aspect };
+	}, [wallHeight, aspect]);
+
+	const common = { zones, tileW, material };
 
 	return (
 		<group>
-			<mesh position={[0, wallHeight / 2, min.z]}>
-				<boxGeometry args={[width, wallHeight, thickness]} />
-				<primitive object={endWallMaterials[0]} attach="material" />
-			</mesh>
-			<mesh
-				position={[
-					(min.x - MAIN_EXIT_WIDTH / 2) / 2,
-					wallHeight / 2,
-					max.z,
-				]}
-			>
-				<boxGeometry
-					args={[
-						Math.abs(min.x + MAIN_EXIT_WIDTH / 2),
-						wallHeight,
-						thickness,
-					]}
-				/>
-				<primitive object={endWallMaterials[1]} attach="material" />
-			</mesh>
-			<mesh
-				position={[
-					(max.x + MAIN_EXIT_WIDTH / 2) / 2,
-					wallHeight / 2,
-					max.z,
-				]}
-			>
-				<boxGeometry
-					args={[
-						Math.abs(max.x - MAIN_EXIT_WIDTH / 2),
-						wallHeight,
-						thickness,
-					]}
-				/>
-				<primitive object={endWallMaterials[2]} attach="material" />
-			</mesh>
-			<mesh
-				position={[
-					0,
-					MAIN_EXIT_HEIGHT +
-						(wallHeight - MAIN_EXIT_HEIGHT) / 2,
-					max.z,
-				]}
-			>
-				<boxGeometry
-					args={[
-						MAIN_EXIT_WIDTH,
-						wallHeight - MAIN_EXIT_HEIGHT,
-						thickness,
-					]}
-				/>
-				<primitive object={endWallMaterials[3]} attach="material" />
-			</mesh>
-			{sideSegments.map((segment, i) => (
-				<mesh key={i} position={[segment.x, wallHeight / 2, segment.z]}>
-					<boxGeometry
-						args={[segment.width, wallHeight, segment.depth]}
-					/>
-					<primitive object={wallMaterial} attach="material" />
-				</mesh>
-			))}
+			{/* rear wall, faces +z */}
+			<Wall
+				{...common}
+				origin={[0, 0, min.z - WALL_SURFACE_OFFSET]}
+				rotationY={0}
+				length={width}
+			/>
+			{/* front wall, faces -z, with the main exit opening */}
+			<Wall
+				{...common}
+				origin={[0, 0, max.z + WALL_SURFACE_OFFSET]}
+				rotationY={Math.PI}
+				length={width}
+				door={{
+					halfWidth: MAIN_EXIT_WIDTH / 2,
+					height: MAIN_EXIT_HEIGHT,
+				}}
+			/>
+			{/* left wall, faces +x */}
+			<Wall
+				{...common}
+				origin={[min.x - WALL_SURFACE_OFFSET, 0, centerZ]}
+				rotationY={Math.PI / 2}
+				length={depth}
+			/>
+			{/* right wall, faces -x */}
+			<Wall
+				{...common}
+				origin={[max.x + WALL_SURFACE_OFFSET, 0, centerZ]}
+				rotationY={-Math.PI / 2}
+				length={depth}
+			/>
 		</group>
 	);
 }
@@ -310,15 +445,34 @@ function PlayerController() {
 	// Mouse look
 	useEffect(() => {
 		const canvas = gl.domElement;
-		const lockPointer = () => {
-			if (document.pointerLockElement !== canvas) {
-				canvas.requestPointerLock();
-			}
+		if (interactionStore.getState().panelOpen) return;
+		let lookEnabled = false;
+		let lookPointerId: number | null = null;
+		let lastX = 0;
+		let lastY = 0;
+
+		const toggleLook = () => {
+			lookEnabled = !lookEnabled;
 		};
-		const onMouseMove = (event: MouseEvent) => {
-			if (document.pointerLockElement !== canvas) return;
-			const mx = THREE.MathUtils.clamp(event.movementX, -100, 100);
-			const my = THREE.MathUtils.clamp(event.movementY, -100, 100);
+		const onPointerDown = (event: PointerEvent) => {
+			if (
+				!lookEnabled ||
+				event.pointerType !== "mouse" ||
+				event.button !== 0
+			) {
+				return;
+			}
+			lookPointerId = event.pointerId;
+			lastX = event.clientX;
+			lastY = event.clientY;
+			canvas.setPointerCapture(event.pointerId);
+		};
+		const onPointerMove = (event: PointerEvent) => {
+			if (event.pointerId !== lookPointerId) return;
+			const mx = THREE.MathUtils.clamp(event.clientX - lastX, -100, 100);
+			const my = THREE.MathUtils.clamp(event.clientY - lastY, -100, 100);
+			lastX = event.clientX;
+			lastY = event.clientY;
 			yaw.current -= mx * MOUSE_SENSITIVITY;
 			pitch.current = THREE.MathUtils.clamp(
 				pitch.current - my * MOUSE_SENSITIVITY,
@@ -326,12 +480,25 @@ function PlayerController() {
 				MAX_PITCH,
 			);
 		};
+		const stopLooking = (event: PointerEvent) => {
+			if (event.pointerId !== lookPointerId) return;
+			lookPointerId = null;
+			if (canvas.hasPointerCapture(event.pointerId)) {
+				canvas.releasePointerCapture(event.pointerId);
+			}
+		};
 
-		canvas.addEventListener("click", lockPointer);
-		document.addEventListener("mousemove", onMouseMove);
+		canvas.addEventListener("dblclick", toggleLook);
+		canvas.addEventListener("pointerdown", onPointerDown);
+		canvas.addEventListener("pointermove", onPointerMove);
+		canvas.addEventListener("pointerup", stopLooking);
+		canvas.addEventListener("pointercancel", stopLooking);
 		return () => {
-			canvas.removeEventListener("click", lockPointer);
-			document.removeEventListener("mousemove", onMouseMove);
+			canvas.removeEventListener("dblclick", toggleLook);
+			canvas.removeEventListener("pointerdown", onPointerDown);
+			canvas.removeEventListener("pointermove", onPointerMove);
+			canvas.removeEventListener("pointerup", stopLooking);
+			canvas.removeEventListener("pointercancel", stopLooking);
 		};
 	}, [gl]);
 
@@ -442,6 +609,7 @@ function PlayerController() {
 		if (!player) return;
 
 		const delta = Math.min(rawDelta, 0.05);
+		// const k = keys.current;
 		const k = keys.current;
 		const vel = velocity.current;
 		const p = player.position;
@@ -562,6 +730,13 @@ export default function HallScene() {
 				<meshStandardMaterial color="#f1f5f9" roughness={1} />
 			</mesh>
 			<HallFloorTexture floorSize={floorSize} floorCenter={floorCenter} />
+			<StallProximityTracker
+				stalls={layout.stalls}
+				frontOf={(s) =>
+					explicitStallFrontDirections[s.id] === "negative-z" ? -1 : 1
+				}
+				debug
+			/>
 
 			{layout.paths.map((path) => (
 				<PathRegion key={path.id} path={path} />
