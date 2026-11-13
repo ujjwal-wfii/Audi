@@ -27,6 +27,16 @@
 		"position": [0, 0, 29],
 		"facing": "toward negative Z"
 	},
+	"exits": [
+		{
+			"id": "MainExit",
+			"wall": "front (+z)",
+			"center": [0, 0, 43],
+			"footprint_x": [-4, 4],
+			"width": 8,
+			"note": "only exit; all other walls are solid"
+		}
+	],
 	"stall_sizes": {
 		"small": [4, 4.5, 6],
 		"medium": [5, 4.5, 6],
@@ -35,446 +45,505 @@
 	},
 	"stalls": [
 		{
-			"id": "L1",
-			"type": "large",
-			"center": [-19.6, 0, 21.0],
-			"footprint_x": [-24.6, -14.6],
-			"footprint_z": [18.0, 24.0],
-			"entrance_direction": "toward central/cross aisle"
-		},
-		{
-			"id": "L2",
-			"type": "large",
-			"center": [-9.5, 0, 21.0],
-			"footprint_x": [-14.5, -4.5],
-			"footprint_z": [18.0, 24.0],
-			"entrance_direction": "toward central/cross aisle"
-		},
-		{
-			"id": "L3",
-			"type": "large",
-			"center": [-19.6, 0, 4.0],
-			"footprint_x": [-24.6, -14.6],
-			"footprint_z": [1.0, 7.0],
-			"entrance_direction": "toward central/cross aisle"
-		},
-		{
-			"id": "L4",
-			"type": "large",
-			"center": [-9.5, 0, 4.0],
-			"footprint_x": [-14.5, -4.5],
-			"footprint_z": [1.0, 7.0],
-			"entrance_direction": "toward central/cross aisle"
-		},
-		{
-			"id": "L5",
-			"type": "large",
-			"center": [9.5, 0, 21.0],
-			"footprint_x": [4.5, 14.5],
-			"footprint_z": [18.0, 24.0],
-			"entrance_direction": "toward central/cross aisle"
-		},
-		{
 			"id": "SP1",
 			"type": "special",
-			"center": [-14.4, 0, -30],
-			"footprint_x": [-24.4, -4.4],
-			"footprint_z": [-32.0, -28.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-14, 0, -40],
+			"footprint_x": [-24.0, -4.0],
+			"footprint_z": [-42.0, -38.0],
+			"facing": "+z",
+			"entrance_direction": "toward RearAisle"
 		},
 		{
 			"id": "SP2",
 			"type": "special",
-			"center": [14.4, 0, -30],
-			"footprint_x": [4.4, 24.4],
-			"footprint_z": [-32.0, -28.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [14, 0, -40],
+			"footprint_x": [4.0, 24.0],
+			"footprint_z": [-42.0, -38.0],
+			"facing": "+z",
+			"entrance_direction": "toward RearAisle"
 		},
 		{
 			"id": "SP3",
 			"type": "special",
-			"center": [-14.4, 0, 31],
-			"footprint_x": [-24.4, -4.4],
-			"footprint_z": [29.0, 33.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-14, 0, 41],
+			"footprint_x": [-24.0, -4.0],
+			"footprint_z": [39.0, 43.0],
+			"facing": "-z",
+			"entrance_direction": "toward EntryFoyer"
 		},
 		{
 			"id": "SP4",
 			"type": "special",
-			"center": [14.4, 0, 31],
-			"footprint_x": [4.4, 24.4],
-			"footprint_z": [29.0, 33.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [14, 0, 41],
+			"footprint_x": [4.0, 24.0],
+			"footprint_z": [39.0, 43.0],
+			"facing": "-z",
+			"entrance_direction": "toward EntryFoyer"
 		},
 		{
-			"id": "M1",
-			"type": "medium",
-			"center": [-22, 0, 10.0],
-			"footprint_x": [-24.5, -19.5],
-			"footprint_z": [7.0, 13.0],
-			"entrance_direction": "toward central/cross aisle"
+			"id": "L1",
+			"type": "large",
+			"center": [-19, 0, 26],
+			"footprint_x": [-24.0, -14.0],
+			"footprint_z": [23.0, 29.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossA"
 		},
 		{
-			"id": "M2",
-			"type": "medium",
-			"center": [-17, 0, 10.0],
-			"footprint_x": [-19.5, -14.5],
-			"footprint_z": [7.0, 13.0],
-			"entrance_direction": "toward central/cross aisle"
+			"id": "L2",
+			"type": "large",
+			"center": [-9, 0, 26],
+			"footprint_x": [-14.0, -4.0],
+			"footprint_z": [23.0, 29.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossA"
 		},
 		{
-			"id": "M3",
-			"type": "medium",
-			"center": [-12, 0, 10.0],
-			"footprint_x": [-14.5, -9.5],
-			"footprint_z": [7.0, 13.0],
-			"entrance_direction": "toward central/cross aisle"
-		},
-		{
-			"id": "M4",
-			"type": "medium",
-			"center": [-7, 0, 10.0],
-			"footprint_x": [-9.5, -4.5],
-			"footprint_z": [7.0, 13.0],
-			"entrance_direction": "toward central/cross aisle"
+			"id": "L5",
+			"type": "large",
+			"center": [9, 0, 26],
+			"footprint_x": [4.0, 14.0],
+			"footprint_z": [23.0, 29.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossA"
 		},
 		{
 			"id": "M5",
 			"type": "medium",
-			"center": [17, 0, 21.0],
-			"footprint_x": [14.5, 19.5],
-			"footprint_z": [18.0, 24.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [16.5, 0, 26],
+			"footprint_x": [14.0, 19.0],
+			"footprint_z": [23.0, 29.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossA"
 		},
 		{
 			"id": "M6",
 			"type": "medium",
-			"center": [22, 0, 21.0],
-			"footprint_x": [19.5, 24.5],
-			"footprint_z": [18.0, 24.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [21.5, 0, 26],
+			"footprint_x": [19.0, 24.0],
+			"footprint_z": [23.0, 29.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossA"
+		},
+		{
+			"id": "M1",
+			"type": "medium",
+			"center": [-21.5, 0, 11],
+			"footprint_x": [-24.0, -19.0],
+			"footprint_z": [8.0, 14.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossA"
+		},
+		{
+			"id": "M2",
+			"type": "medium",
+			"center": [-16.5, 0, 11],
+			"footprint_x": [-19.0, -14.0],
+			"footprint_z": [8.0, 14.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossA"
+		},
+		{
+			"id": "M3",
+			"type": "medium",
+			"center": [-11.5, 0, 11],
+			"footprint_x": [-14.0, -9.0],
+			"footprint_z": [8.0, 14.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossA"
+		},
+		{
+			"id": "M4",
+			"type": "medium",
+			"center": [-6.5, 0, 11],
+			"footprint_x": [-9.0, -4.0],
+			"footprint_z": [8.0, 14.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossA"
 		},
 		{
 			"id": "M7",
 			"type": "medium",
-			"center": [7, 0, 10.0],
-			"footprint_x": [4.5, 9.5],
-			"footprint_z": [7.0, 13.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [6.5, 0, 11],
+			"footprint_x": [4.0, 9.0],
+			"footprint_z": [8.0, 14.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossA"
 		},
 		{
 			"id": "M8",
 			"type": "medium",
-			"center": [12, 0, 10.0],
-			"footprint_x": [9.5, 14.5],
-			"footprint_z": [7.0, 13.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [11.5, 0, 11],
+			"footprint_x": [9.0, 14.0],
+			"footprint_z": [8.0, 14.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossA"
 		},
 		{
 			"id": "M9",
 			"type": "medium",
-			"center": [17, 0, 10.0],
-			"footprint_x": [14.5, 19.5],
-			"footprint_z": [7.0, 13.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [16.5, 0, 11],
+			"footprint_x": [14.0, 19.0],
+			"footprint_z": [8.0, 14.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossA"
 		},
 		{
 			"id": "M10",
 			"type": "medium",
-			"center": [22, 0, 10.0],
-			"footprint_x": [19.5, 24.5],
-			"footprint_z": [7.0, 13.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [21.5, 0, 11],
+			"footprint_x": [19.0, 24.0],
+			"footprint_z": [8.0, 14.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossA"
+		},
+		{
+			"id": "L3",
+			"type": "large",
+			"center": [-19, 0, 5],
+			"footprint_x": [-24.0, -14.0],
+			"footprint_z": [2.0, 8.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossB"
+		},
+		{
+			"id": "L4",
+			"type": "large",
+			"center": [-9, 0, 5],
+			"footprint_x": [-14.0, -4.0],
+			"footprint_z": [2.0, 8.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "M11",
 			"type": "medium",
-			"center": [7, 0, 4.0],
-			"footprint_x": [4.5, 9.5],
-			"footprint_z": [1.0, 7.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [6.5, 0, 5],
+			"footprint_x": [4.0, 9.0],
+			"footprint_z": [2.0, 8.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "M12",
 			"type": "medium",
-			"center": [12, 0, 4.0],
-			"footprint_x": [9.5, 14.5],
-			"footprint_z": [1.0, 7.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [11.5, 0, 5],
+			"footprint_x": [9.0, 14.0],
+			"footprint_z": [2.0, 8.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "M13",
 			"type": "medium",
-			"center": [17, 0, 4.0],
-			"footprint_x": [14.5, 19.5],
-			"footprint_z": [1.0, 7.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [16.5, 0, 5],
+			"footprint_x": [14.0, 19.0],
+			"footprint_z": [2.0, 8.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "M14",
 			"type": "medium",
-			"center": [22, 0, 4.0],
-			"footprint_x": [19.5, 24.5],
-			"footprint_z": [1.0, 7.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [21.5, 0, 5],
+			"footprint_x": [19.0, 24.0],
+			"footprint_z": [2.0, 8.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S1",
 			"type": "small",
-			"center": [-22.5, 0, -8.0],
-			"footprint_x": [-24.5, -20.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-22, 0, -10],
+			"footprint_x": [-24.0, -20.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S2",
 			"type": "small",
-			"center": [-18.5, 0, -8.0],
-			"footprint_x": [-20.5, -16.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-18, 0, -10],
+			"footprint_x": [-20.0, -16.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S3",
 			"type": "small",
-			"center": [-14.5, 0, -8.0],
-			"footprint_x": [-16.5, -12.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-14, 0, -10],
+			"footprint_x": [-16.0, -12.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S4",
 			"type": "small",
-			"center": [-10.5, 0, -8.0],
-			"footprint_x": [-12.5, -8.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-10, 0, -10],
+			"footprint_x": [-12.0, -8.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S5",
 			"type": "small",
-			"center": [-6.5, 0, -8.0],
-			"footprint_x": [-8.5, -4.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-6, 0, -10],
+			"footprint_x": [-8.0, -4.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S6",
 			"type": "small",
-			"center": [6.5, 0, -8.0],
-			"footprint_x": [4.5, 8.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [6, 0, -10],
+			"footprint_x": [4.0, 8.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S7",
 			"type": "small",
-			"center": [10.5, 0, -8.0],
-			"footprint_x": [8.5, 12.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [10, 0, -10],
+			"footprint_x": [8.0, 12.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S8",
 			"type": "small",
-			"center": [14.5, 0, -8.0],
-			"footprint_x": [12.5, 16.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [14, 0, -10],
+			"footprint_x": [12.0, 16.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S9",
 			"type": "small",
-			"center": [18.5, 0, -8.0],
-			"footprint_x": [16.5, 20.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [18, 0, -10],
+			"footprint_x": [16.0, 20.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S10",
 			"type": "small",
-			"center": [22.5, 0, -8.0],
-			"footprint_x": [20.5, 24.5],
-			"footprint_z": [-11.0, -5.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [22, 0, -10],
+			"footprint_x": [20.0, 24.0],
+			"footprint_z": [-13.0, -7.0],
+			"facing": "+z",
+			"entrance_direction": "toward CrossB"
 		},
 		{
 			"id": "S11",
 			"type": "small",
-			"center": [-22.5, 0, -14.0],
-			"footprint_x": [-24.5, -20.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-22, 0, -16],
+			"footprint_x": [-24.0, -20.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S12",
 			"type": "small",
-			"center": [-18.5, 0, -14.0],
-			"footprint_x": [-20.5, -16.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-18, 0, -16],
+			"footprint_x": [-20.0, -16.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S13",
 			"type": "small",
-			"center": [-14.5, 0, -14.0],
-			"footprint_x": [-16.5, -12.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-14, 0, -16],
+			"footprint_x": [-16.0, -12.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S14",
 			"type": "small",
-			"center": [-10.5, 0, -14.0],
-			"footprint_x": [-12.5, -8.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-10, 0, -16],
+			"footprint_x": [-12.0, -8.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S15",
 			"type": "small",
-			"center": [-6.5, 0, -14.0],
-			"footprint_x": [-8.5, -4.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [-6, 0, -16],
+			"footprint_x": [-8.0, -4.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S16",
 			"type": "small",
-			"center": [6.5, 0, -14.0],
-			"footprint_x": [4.5, 8.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [6, 0, -16],
+			"footprint_x": [4.0, 8.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S17",
 			"type": "small",
-			"center": [10.5, 0, -14.0],
-			"footprint_x": [8.5, 12.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [10, 0, -16],
+			"footprint_x": [8.0, 12.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S18",
 			"type": "small",
-			"center": [14.5, 0, -14.0],
-			"footprint_x": [12.5, 16.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [14, 0, -16],
+			"footprint_x": [12.0, 16.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S19",
 			"type": "small",
-			"center": [18.5, 0, -14.0],
-			"footprint_x": [16.5, 20.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [18, 0, -16],
+			"footprint_x": [16.0, 20.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		},
 		{
 			"id": "S20",
 			"type": "small",
-			"center": [22.5, 0, -14.0],
-			"footprint_x": [20.5, 24.5],
-			"footprint_z": [-18.0, -12.0],
-			"entrance_direction": "toward central/cross aisle"
+			"center": [22, 0, -16],
+			"footprint_x": [20.0, 24.0],
+			"footprint_z": [-19.0, -13.0],
+			"facing": "-z",
+			"entrance_direction": "toward CrossC"
 		}
 	],
 	"paths": [
 		{
 			"id": "MainAisle",
-			"center": [0, 0.02, 0.5],
-			"size": [8, 0.04, 64],
-			"footprint_x": [-4.0, 4.0],
-			"footprint_z": [-31.5, 32.5],
-			"purpose": "main north-south aisle"
-		},
-		{
-			"id": "CrossA_Left",
-			"center": [-16, 0.02, 15],
-			"size": [24, 0.04, 4],
-			"footprint_x": [-28.0, -4.0],
-			"footprint_z": [13.0, 17.0],
-			"purpose": "connect left block to main aisle"
-		},
-		{
-			"id": "CrossA_Right",
-			"center": [16, 0.02, 15],
-			"size": [24, 0.04, 4],
-			"footprint_x": [4.0, 28.0],
-			"footprint_z": [13.0, 17.0],
-			"purpose": "connect right block to main aisle"
-		},
-		{
-			"id": "CrossB_Left",
-			"center": [-16, 0.02, -4],
-			"size": [24, 0.04, 4],
-			"footprint_x": [-28.0, -4.0],
-			"footprint_z": [-6.0, -2.0],
-			"purpose": "connect left block to main aisle"
-		},
-		{
-			"id": "CrossB_Right",
-			"center": [16, 0.02, -4],
-			"size": [24, 0.04, 4],
-			"footprint_x": [4.0, 28.0],
-			"footprint_z": [-6.0, -2.0],
-			"purpose": "connect right block to main aisle"
-		},
-		{
-			"id": "CrossC_Left",
-			"center": [-16, 0.02, -18],
-			"size": [24, 0.04, 4],
-			"footprint_x": [-28.0, -4.0],
-			"footprint_z": [-20.0, -16.0],
-			"purpose": "connect left block to main aisle"
-		},
-		{
-			"id": "CrossC_Right",
-			"center": [16, 0.02, -18],
-			"size": [22.5, 0.04, 4],
-			"footprint_x": [4.0, 28.0],
-			"footprint_z": [-20.0, -16.0],
-			"purpose": "connect right block to main aisle"
-		},
-		{
-			"id": "EntryFoyer",
-			"center": [-15.2, 0.02, 28],
-			"size": [22.5, 0.04, 8],
-			"footprint_x": [-28.0, -6.0],
-			"footprint_z": [24.0, 32.0],
-			"purpose": "registration and entry foyer"
-		},
-		{
-			"id": "EntryFoyer_Right",
-			"center": [15.2, 0.02, 28],
-			"size": [22.5, 0.04, 8],
-			"footprint_x": [6.0, 28.0],
-			"footprint_z": [24.0, 32.0],
-			"purpose": "registration and entry foyer"
+			"center": [0.0, 0.02, 0.5],
+			"size": [4, 0.04, 85],
+			"footprint_x": [-4, 4],
+			"footprint_z": [-38, 39],
+			"purpose": "main north-south aisle (8 m wide)"
 		},
 		{
 			"id": "EntryConnector",
-			"center": [0, 0.02, 28],
-			"size": [8, 0.04, 10],
-			"footprint_x": [-4.0, 4.0],
-			"footprint_z": [23.0, 33.0],
-			"purpose": "main entrance to main aisle"
+			"center": [0.0, 0.02, 41.0],
+			"size": [4, 0.04, 4],
+			"footprint_x": [-4, 4],
+			"footprint_z": [39, 43],
+			"purpose": "main door to main aisle, between SP3 and SP4"
 		},
 		{
-			"id": "Right_Side_Aisle",
-			"center": [28.2, 0.02, -0.5],
-			"size": [3.6, 0.04, 64],
-			"footprint_x": [26.4, 30.0],
-			"footprint_z": [-32.5, 31.5],
-			"purpose": "main north-south aisle"
+			"id": "CrossA_Left",
+			"center": [-13.0, 0.02, 18.5],
+			"size": [22, 0.04, 5],
+			"footprint_x": [-24, -4],
+			"footprint_z": [14, 23],
+			"purpose": "cross aisle between row A and double row B+C (9 m)"
+		},
+		{
+			"id": "CrossB_Left",
+			"center": [-13.0, 0.02, -2.5],
+			"size": [22, 0.04, 5],
+			"footprint_x": [-24, -4],
+			"footprint_z": [-7, 2],
+			"purpose": "cross aisle between double rows B+C and S1+S2 (9 m)"
+		},
+		{
+			"id": "CrossC_Left",
+			"center": [-13.0, 0.02, -23.5],
+			"size": [22, 0.04, 5],
+			"footprint_x": [-24, -4],
+			"footprint_z": [-28, -19],
+			"purpose": "cross aisle behind double row S1+S2 (9 m)"
+		},
+		{
+			"id": "EntryFoyer",
+			"center": [-13.0, 0.02, 34.0],
+			"size": [22, 0.04, 5],
+			"footprint_x": [-24, -4],
+			"footprint_z": [29, 39],
+			"purpose": "registration and entry foyer"
+		},
+		{
+			"id": "RearAisle_Left",
+			"center": [-13.0, 0.02, -33.0],
+			"size": [22, 0.04, 5],
+			"footprint_x": [-24, -4],
+			"footprint_z": [-38, -28],
+			"purpose": "rear aisle / plaza in front of SP1 and SP2"
+		},
+		{
+			"id": "CrossA_Right",
+			"center": [13.0, 0.02, 18.5],
+			"size": [22, 0.04, 5],
+			"footprint_x": [4, 24],
+			"footprint_z": [14, 23],
+			"purpose": "cross aisle between row A and double row B+C (9 m)"
+		},
+		{
+			"id": "CrossB_Right",
+			"center": [13.0, 0.02, -2.5],
+			"size": [22, 0.04, 5],
+			"footprint_x": [4, 24],
+			"footprint_z": [-7, 2],
+			"purpose": "cross aisle between double rows B+C and S1+S2 (9 m)"
+		},
+		{
+			"id": "CrossC_Right",
+			"center": [13.0, 0.02, -23.5],
+			"size": [22, 0.04, 5],
+			"footprint_x": [4, 24],
+			"footprint_z": [-28, -19],
+			"purpose": "cross aisle behind double row S1+S2 (9 m)"
+		},
+		{
+			"id": "EntryFoyer_Right",
+			"center": [13.0, 0.02, 34.0],
+			"size": [22, 0.04, 5],
+			"footprint_x": [4, 24],
+			"footprint_z": [29, 39],
+			"purpose": "registration and entry foyer"
+		},
+		{
+			"id": "RearAisle_Right",
+			"center": [13.0, 0.02, -33.0],
+			"size": [22, 0.04, 5],
+			"footprint_x": [4, 24],
+			"footprint_z": [-38, -28],
+			"purpose": "rear aisle / plaza in front of SP1 and SP2"
 		},
 		{
 			"id": "Left_Side_Aisle",
-			"center": [-28.2, 0.02, -0.5],
-			"size": [3.6, 0.04, 64],
-			"footprint_x": [-30.0, -26.4],
-			"footprint_z": [-32.5, 31.5],
-			"purpose": "main north-south aisle"
+			"center": [-26.9, 0.02, 0.5],
+			"size": [5.8000000000000014, 0.04, 85],
+			"footprint_x": [-27.6, -24],
+			"footprint_z": [-38, 39],
+			"purpose": "perimeter walkway (3.6 m), joins all cross aisles"
+		},
+		{
+			"id": "Right_Side_Aisle",
+			"center": [26.9, 0.02, 0.5],
+			"size": [5.8000000000000014, 0.04, 85],
+			"footprint_x": [24, 27.6],
+			"footprint_z": [-38, 39],
+			"purpose": "perimeter walkway (3.6 m), joins all cross aisles"
 		}
 	],
 	"streaming_zones": [
@@ -482,7 +551,7 @@
 			"id": "Z1_Entrance",
 			"bounds": {
 				"x": [-30, 30],
-				"z": [23, 33]
+				"z": [29, 43]
 			},
 			"priority": "always/initial"
 		},
@@ -490,7 +559,7 @@
 			"id": "Z2_Front_Booths",
 			"bounds": {
 				"x": [-30, 30],
-				"z": [13, 23]
+				"z": [14, 29]
 			},
 			"priority": "nearby"
 		},
@@ -498,7 +567,7 @@
 			"id": "Z3_Middle_Booths",
 			"bounds": {
 				"x": [-30, 30],
-				"z": [-2, 13]
+				"z": [-7, 14]
 			},
 			"priority": "nearby"
 		},
@@ -506,7 +575,7 @@
 			"id": "Z4_Small_Stalls",
 			"bounds": {
 				"x": [-30, 30],
-				"z": [-18, -2]
+				"z": [-28, -7]
 			},
 			"priority": "nearby"
 		},
@@ -514,16 +583,16 @@
 			"id": "Z5_Rear_Stalls",
 			"bounds": {
 				"x": [-30, 30],
-				"z": [-32, -18]
+				"z": [-42, -28]
 			},
 			"priority": "preload/release"
 		}
 	],
 	"notes": [
-		"Coordinate draft based on the supplied 41-stall diagram, with approximate dimensions.",
-		"Stall center is [x, 0, z]; dimensions are reused from stall_sizes by stall type.",
-		"Path rectangles are conceptual walkable zones. Before implementation, validate overlaps and connectivity visually.",
-		"This draft intentionally preserves the shown stall count: 20 small, 14 medium, 5 large, 4 special.",
-		"Some cross-aisle and stall-front clearances may require adjustment after rendering the top-down plan."
+		"Footprints use x_min=xc-w/2, x_max=xc+w/2, z_min=zc-d/2, z_max=zc+d/2.",
+		"B+C and S1+S2 are each one 12 m deep double row (shared edge, no gap) and face opposite directions.",
+		"SP1/SP2 flush to rear wall z=-42; SP3/SP4 flush to front wall z=43.",
+		"Path widths: main aisle 8, cross aisles 9, side aisles 3.6, rear aisle 10.",
+		"Only exit is MainExit. hall.max.y (12) conflicts with ceiling_height (22); unchanged."
 	]
 }

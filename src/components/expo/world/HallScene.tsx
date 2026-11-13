@@ -1,6 +1,7 @@
 "use client";
 
 import { useFrame, useThree } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import hallLayoutJson from "@/lib/expo/layout/hall-layout.json";
@@ -18,7 +19,30 @@ import SpecialStall from "../stalls/SpecialStall";
 import type { StallVisualProps } from "../stalls/stallTypes";
 import Ceiling from "./Ceiling";
 
-const layout = hallLayoutJson as HallLayout;
+const layout: HallLayout = hallLayoutJson;
+const HALL_WALL_TEXTURE_URL =
+	"/textures/walls/Geometric Exhibition Hall Wall.png";
+const HALL_END_WALL_TEXTURE_URL =
+	"/textures/walls/front end wall.jpeg";
+const END_WALL_TILE_COUNT = 2;
+const MAIN_EXIT_WIDTH = 8;
+const MAIN_EXIT_HEIGHT = 4.5;
+
+function createEndWallMaterial(texture: THREE.Texture, repeatX: number) {
+	const wallTexture = texture.clone();
+	wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+	wallTexture.repeat.set(
+		repeatX * END_WALL_TILE_COUNT,
+		END_WALL_TILE_COUNT,
+	);
+	wallTexture.colorSpace = THREE.SRGBColorSpace;
+	wallTexture.anisotropy = 16;
+	wallTexture.needsUpdate = true;
+	return new THREE.MeshStandardMaterial({
+		map: wallTexture,
+		roughness: 0.8,
+	});
+}
 
 const stallColors: Record<StallType, string> = {
 	small: "#2F7F7B",
@@ -116,70 +140,148 @@ function HallWalls() {
 	const wallHeight = layout.hall.ceiling_height;
 	const thickness = 0.45;
 	const width = max.x - min.x;
+	const texture = useTexture(HALL_WALL_TEXTURE_URL);
+	const endWallTexture = useTexture(HALL_END_WALL_TEXTURE_URL);
+	const wallMaterial = useMemo(() => {
+		const wallTexture = texture.clone();
+		wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+		wallTexture.repeat.set(4, 2);
+		wallTexture.colorSpace = THREE.SRGBColorSpace;
+		wallTexture.anisotropy = 16;
+		wallTexture.needsUpdate = true;
+		return new THREE.MeshStandardMaterial({
+			map: wallTexture,
+			roughness: 0.8,
+		});
+	}, [texture]);
+	const endWallMaterials = useMemo(
+		() => [
+			createEndWallMaterial(endWallTexture, width / wallHeight),
+			createEndWallMaterial(
+				endWallTexture,
+				Math.abs(min.x + MAIN_EXIT_WIDTH / 2) / wallHeight,
+			),
+			createEndWallMaterial(
+				endWallTexture,
+				Math.abs(max.x - MAIN_EXIT_WIDTH / 2) / wallHeight,
+			),
+			createEndWallMaterial(
+				endWallTexture,
+				MAIN_EXIT_WIDTH / (wallHeight - MAIN_EXIT_HEIGHT),
+			),
+		],
+		[endWallTexture, max.x, min.x, wallHeight, width],
+	);
 
-	// Keep entrance open across the central 8 m at +Z.
-	const sideExitZ = [15, -4, -18];
-	const exitHalfWidth = 1.8;
 	const sideSegments = useMemo(() => {
-		const segments: Array<{
-			x: number;
-			z: number;
-			width: number;
-			depth: number;
-		}> = [];
-		for (const sideX of [min.x, max.x]) {
-			let cursor = min.z;
-			for (const exitZ of [...sideExitZ].sort((a, b) => a - b)) {
-				const start = exitZ - exitHalfWidth;
-				if (start > cursor) {
-					segments.push({
-						x: sideX,
-						z: (cursor + start) / 2,
-						width: thickness,
-						depth: start - cursor,
-					});
-				}
-				cursor = exitZ + exitHalfWidth;
-			}
-			if (cursor < max.z) {
-				segments.push({
-					x: sideX,
-					z: (cursor + max.z) / 2,
-					width: thickness,
-					depth: max.z - cursor,
-				});
-			}
-		}
-		return segments;
+		return [min.x, max.x].map((x) => ({
+			x,
+			z: (min.z + max.z) / 2,
+			width: thickness,
+			depth: max.z - min.z,
+		}));
 	}, [min.x, max.x, min.z, max.z]);
 
 	return (
 		<group>
 			<mesh position={[0, wallHeight / 2, min.z]}>
 				<boxGeometry args={[width, wallHeight, thickness]} />
-				<meshStandardMaterial color="#cbd5e1" roughness={0.9} />
+				<primitive object={endWallMaterials[0]} attach="material" />
 			</mesh>
-			<mesh position={[(min.x - 4) / 2, wallHeight / 2, max.z]}>
+			<mesh
+				position={[
+					(min.x - MAIN_EXIT_WIDTH / 2) / 2,
+					wallHeight / 2,
+					max.z,
+				]}
+			>
 				<boxGeometry
-					args={[Math.abs(min.x + 4), wallHeight, thickness]}
+					args={[
+						Math.abs(min.x + MAIN_EXIT_WIDTH / 2),
+						wallHeight,
+						thickness,
+					]}
 				/>
-				<meshStandardMaterial color="#cbd5e1" roughness={0.9} />
+				<primitive object={endWallMaterials[1]} attach="material" />
 			</mesh>
-			<mesh position={[(max.x + 4) / 2, wallHeight / 2, max.z]}>
+			<mesh
+				position={[
+					(max.x + MAIN_EXIT_WIDTH / 2) / 2,
+					wallHeight / 2,
+					max.z,
+				]}
+			>
 				<boxGeometry
-					args={[Math.abs(max.x - 4), wallHeight, thickness]}
+					args={[
+						Math.abs(max.x - MAIN_EXIT_WIDTH / 2),
+						wallHeight,
+						thickness,
+					]}
 				/>
-				<meshStandardMaterial color="#cbd5e1" roughness={0.9} />
+				<primitive object={endWallMaterials[2]} attach="material" />
+			</mesh>
+			<mesh
+				position={[
+					0,
+					MAIN_EXIT_HEIGHT +
+						(wallHeight - MAIN_EXIT_HEIGHT) / 2,
+					max.z,
+				]}
+			>
+				<boxGeometry
+					args={[
+						MAIN_EXIT_WIDTH,
+						wallHeight - MAIN_EXIT_HEIGHT,
+						thickness,
+					]}
+				/>
+				<primitive object={endWallMaterials[3]} attach="material" />
 			</mesh>
 			{sideSegments.map((segment, i) => (
 				<mesh key={i} position={[segment.x, wallHeight / 2, segment.z]}>
 					<boxGeometry
 						args={[segment.width, wallHeight, segment.depth]}
 					/>
-					<meshStandardMaterial color="#cbd5e1" roughness={0.9} />
+					<primitive object={wallMaterial} attach="material" />
 				</mesh>
 			))}
 		</group>
+	);
+}
+
+const HALL_FLOOR_TEXTURE_URL = "/textures/floor/floral_jacquard_diff_1k.jpg";
+const HALL_FLOOR_TILE_SIZE = 4;
+
+function HallFloorTexture({
+	floorSize,
+	floorCenter,
+}: {
+	floorSize: number[];
+	floorCenter: number[];
+}) {
+	const texture = useTexture(HALL_FLOOR_TEXTURE_URL);
+	const tiledTexture = useMemo(() => {
+		const clonedTexture = texture.clone();
+		clonedTexture.wrapS = clonedTexture.wrapT = THREE.RepeatWrapping;
+		clonedTexture.repeat.set(
+			floorSize[0] / HALL_FLOOR_TILE_SIZE,
+			floorSize[2] / HALL_FLOOR_TILE_SIZE,
+		);
+		clonedTexture.colorSpace = THREE.SRGBColorSpace;
+		clonedTexture.anisotropy = 16;
+		clonedTexture.needsUpdate = true;
+		return clonedTexture;
+	}, [floorSize, texture]);
+
+	return (
+		<mesh
+			position={[floorCenter[0], 0.002, floorCenter[2]]}
+			rotation={[-Math.PI / 2, 0, 0]}
+			raycast={() => null}
+		>
+			<planeGeometry args={[floorSize[0], floorSize[2]]} />
+			<meshStandardMaterial map={tiledTexture} roughness={0.92} />
+		</mesh>
 	);
 }
 
@@ -459,6 +561,7 @@ export default function HallScene() {
 				<boxGeometry args={floorSize} />
 				<meshStandardMaterial color="#f1f5f9" roughness={1} />
 			</mesh>
+			<HallFloorTexture floorSize={floorSize} floorCenter={floorCenter} />
 
 			{layout.paths.map((path) => (
 				<PathRegion key={path.id} path={path} />

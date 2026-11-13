@@ -463,10 +463,10 @@ function buildBody(
 	add(
 		box(
 			BEAM,
-			wallH,
+			wallH + 0.15,
 			sideLen,
 			L + BEAM / 2,
-			wallMidY,
+			wallMidY + 0.06,
 			sideZ,
 			SLOT_DEFS.wall.fallback,
 		),
@@ -475,10 +475,10 @@ function buildBody(
 	add(
 		box(
 			BEAM,
-			wallH,
+			wallH + 0.15,
 			sideLen,
 			R - BEAM / 2,
-			wallMidY,
+			wallMidY + 0.06,
 			sideZ,
 			SLOT_DEFS.wall.fallback,
 		),
@@ -589,10 +589,10 @@ function buildBody(
 		add(
 			box(
 				BEAM,
-				wallH + 0.2,
+				wallH + 0.15,
 				BEAM - 0.01,
 				px,
-				wallMidY + 0.01,
+				wallMidY + 0.06,
 				F - 0.01 - (BEAM - 0.01) / 2,
 				C.pillar,
 			),
@@ -614,17 +614,17 @@ function buildBody(
 	// side walls touch and receive the same light.
 	for (const s of [-1, 1]) {
 		const dividerX = s * (w / 2 + 0.012);
-		add(
-			box(
-				0.07,
-				wallH + 0.08,
-				sideLen,
-				dividerX,
-				wallMidY + 0.01,
-				sideZ,
-				C.divider,
-			),
-		);
+		// add(
+		// 	box(
+		// 		0.07,
+		// 		wallH + 0.08,
+		// 		sideLen,
+		// 		dividerX,
+		// 		wallMidY + 0.01,
+		// 		sideZ,
+		// 		C.divider,
+		// 	),
+		// );
 		add(
 			box(
 				0.09,
