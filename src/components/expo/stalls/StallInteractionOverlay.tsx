@@ -108,22 +108,22 @@ export default function StallInteractionOverlay() {
 								setMessage(`Mock: "${o.label}" for ${stall.id}`)
 							}
 							className={`
-            pointer-events-auto
-            w-28 h-28 lg:w-32 lg:h-32
-            rounded-[28px]
-            flex items-center justify-center
-            text-center text-sm font-bold text-white
-            px-3
-            bg-gradient-to-br from-slate-800 to-slate-950
-            border border-cyan-400/50
-            shadow-[0_8px_30px_rgba(0,0,0,0.35)]
-            hover:border-cyan-300
-            hover:shadow-[0_0_30px_rgba(34,211,238,0.3)]
-            hover:scale-105
-            transition-all duration-300
-            ${i === 0 ? "translate-x-10" : ""}
-            ${i === 2 ? "translate-x-10" : ""}
-          `}
+                        pointer-events-auto
+                        w-28 h-28 lg:w-32 lg:h-32
+                        rounded-[28px]
+                        flex items-center justify-center
+                        text-center text-sm font-bold text-white
+                        px-3
+                        bg-gradient-to-br from-slate-800 to-slate-950
+                        border border-cyan-400/50
+                        shadow-[0_8px_30px_rgba(0,0,0,0.35)]
+                        hover:border-cyan-300
+                        hover:shadow-[0_0_30px_rgba(34,211,238,0.3)]
+                        hover:scale-105
+                        transition-all duration-300
+                        ${i === 0 ? "translate-x-10" : ""}
+                        ${i === 2 ? "translate-x-10" : ""}
+                    `}
 						>
 							{o.label}
 						</button>
@@ -133,31 +133,31 @@ export default function StallInteractionOverlay() {
 				{/* COMPACT CENTER EXHIBITOR CARD */}
 				<div
 					className="
-  absolute left-1/2 top-[44%]
-  -translate-x-1/2 -translate-y-1/2
-  pointer-events-auto
+                        absolute left-1/2 top-[44%]
+                        -translate-x-1/2 -translate-y-1/2
+                        pointer-events-auto
 
-  w-[175px] lg:w-[190px]
-  rounded-xl
-  px-4 py-4
+                        w-[175px] lg:w-[190px]
+                        rounded-xl
+                        px-4 py-4
 
-  text-center text-white
-  bg-gradient-to-br from-slate-900/95 to-slate-950/95
-  border border-cyan-400/40
+                        text-center text-white
+                        bg-gradient-to-br from-slate-900/95 to-slate-950/95
+                        border border-cyan-400/40
 
-  shadow-[0_0_20px_rgba(34,211,238,0.12)]
-  backdrop-blur-lg
-"
+                        shadow-[0_0_20px_rgba(34,211,238,0.12)]
+                        backdrop-blur-lg
+                        "
 				>
 					{/* Close */}
 					<button
 						onClick={() => interactionStore.closePanel()}
 						aria-label="Close"
 						className="
-      absolute top-2 right-3
-      text-base text-slate-400
-      hover:text-white transition-colors
-    "
+                            absolute top-2 right-3
+                            text-base text-slate-400
+                            hover:text-white transition-colors
+                            "
 					>
 						×
 					</button>
