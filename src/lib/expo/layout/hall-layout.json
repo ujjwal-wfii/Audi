@@ -1,4 +1,11 @@
 {
+	"units": "meters",
+	"coordinate_system": {
+		"x": "left to right",
+		"y": "vertical; floor at 0",
+		"z": "entrance to rear; entrance is positive z",
+		"origin": "hall center in X, approximate middle in Z"
+	},
 	"hall": {
 		"min": {
 			"x": -30,

@@ -21,7 +21,7 @@ import Ceiling from "./Ceiling";
 import StallProximityTracker from "../stalls/StallProximityTracker";
 import { interactionStore } from "@/lib/expo/stall-interactivity/interactionStore";
 
-const layout: HallLayout = hallLayoutJson;
+const layout = hallLayoutJson as unknown as HallLayout;
 const HALL_WALL_TEXTURE_URL =
 	"/textures/walls/Geometric Exhibition Hall Wall.png";
 // "/textures/walls/front end wall3.jpeg";
