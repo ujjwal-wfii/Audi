@@ -10,6 +10,8 @@ import {
 import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { StallVisualProps } from "./stallTypes";
+import StallImagePlane from "./StallImagePlane";
+import StallVideoPlane from "./StallVideoPlane";
 import ReceptionistModel from "./ReceptionistModel";
 import ShelfModel from "./ShelfModel";
 
@@ -614,17 +616,17 @@ function buildBody(
 	// side walls touch and receive the same light.
 	for (const s of [-1, 1]) {
 		const dividerX = s * (w / 2 + 0.012);
-		add(
-			box(
-				0.07,
-				wallH + 0.08,
-				sideLen,
-				dividerX,
-				wallMidY + 0.01,
-				sideZ,
-				C.divider,
-			),
-		);
+		// add(
+		// 	box(
+		// 		0.07,
+		// 		wallH + 0.08,
+		// 		sideLen,
+		// 		dividerX,
+		// 		wallMidY + 0.01,
+		// 		sideZ,
+		// 		C.divider,
+		// 	),
+		// );
 		add(
 			box(
 				0.09,
@@ -794,28 +796,7 @@ function buildBody(
 		);
 	});
 
-	add(
-		box(
-			0.02,
-			wallH * 0.8,
-			d * 0.8,
-			-1 * (innerW / 2 - 0.01),
-			BASE_TOP + wallH * 0.5,
-			0 * d,
-			accent,
-		),
-	);
-	add(
-		box(
-			0.02,
-			wallH * 0.4,
-			d * 0.4,
-			1 * (innerW / 2 - 0.01),
-			BASE_TOP + wallH * 0.5,
-			0 * d,
-			accent,
-		),
-	);
+	// Side-wall media panels are rendered as independent meshes in SmallStall.
 
 	// ---- Reception counter: body (texture: counter), front panel, top ----------
 	// (cw, cd, cx, cz come from computeLayout so the receptionist can use them too)
@@ -832,17 +813,7 @@ function buildBody(
 		),
 		"counter",
 	);
-	add(
-		box(
-			cw * 0.92,
-			bodyH * 0.7,
-			0.02,
-			cx,
-			FLOOR_TOP + bodyH * 0.5,
-			cz + cd / 2 + 0.01,
-			accent,
-		),
-	);
+	// Front-desk media panel is rendered as an independent mesh in SmallStall.
 	add(
 		roundedBox(
 			cw + 0.1,
@@ -1016,6 +987,7 @@ export default function SmallStall({
 	rotationY,
 	size,
 	color,
+	media,
 }: StallVisualProps) {
 	const detailRef = useRef<THREE.Group>(null);
 	const detailCenter = useMemo(() => new THREE.Vector3(), []);
@@ -1029,11 +1001,20 @@ export default function SmallStall({
 	const materials = useMemo(() => body.slots.map(getSlotMaterial), [body]);
 	const labelTexture = useLabelTexture(stall.id);
 
-	const { zIn, brandY, fasciaH, brandW, brandH, cx, cz, cd } = computeLayout(
-		w,
-		h,
-		d,
-	);
+	const {
+		innerW,
+		wallH,
+		zIn,
+		brandY,
+		fasciaH,
+		brandW,
+		brandH,
+		cw,
+		cx,
+		cz,
+		cd,
+	} = computeLayout(w, h, d);
+	const counterBodyH = 0.9;
 	const { signW, signH } = signSize(w, h);
 
 	useFrame(() => {
@@ -1047,8 +1028,63 @@ export default function SmallStall({
 
 	return (
 		<group name={`stall-${stall.id}`} rotation={[0, rotationY, 0]}>
-			{/* Stall body: one mesh, one material per slot (flat / wall / floor / counter) */}
+			{/* Stall body: one mesh, one material per slot (flat / wall / floor / counter). */}
 			<mesh geometry={body.geometry} material={materials} />
+
+			{/* Independent media placeholders. Their geometry matches the original
+			    accent panels exactly; only their rendering is separated from the body. */}
+			<mesh
+				name="media-placeholder-left-wall"
+				position={[-(innerW / 2 - 0.01), BASE_TOP + wallH * 0.5, 0]}
+				userData={{ placeholderId: "left_wall", mediaType: "image" }}
+			>
+				<boxGeometry args={[0.02, wallH * 0.8, d * 0.8]} />
+				<meshLambertMaterial color={accent} />
+			</mesh>
+			{media?.left_wall?.type === "image" && (
+				<StallImagePlane
+					url={media.left_wall.url}
+					position={[-(innerW / 2 - 0.01) + 0.011, BASE_TOP + wallH * 0.5, 0]}
+					rotation={[0, Math.PI / 2, 0]}
+					size={[d * 0.8, wallH * 0.8]}
+				/>
+			)}
+
+
+			<mesh
+				name="media-placeholder-right-wall"
+				position={[innerW / 2 - 0.01, BASE_TOP + wallH * 0.5, 0]}
+				userData={{ placeholderId: "right_wall", mediaType: "image" }}
+			>
+				<boxGeometry args={[0.02, wallH * 0.4, d * 0.4]} />
+				<meshLambertMaterial color={accent} />
+			</mesh>
+			{media?.right_wall?.type === "image" && (
+				<StallImagePlane
+					url={media.right_wall.url}
+					position={[innerW / 2 - 0.01 - 0.011, BASE_TOP + wallH * 0.5, 0]}
+					rotation={[0, -Math.PI / 2, 0]}
+					size={[d * 0.4, wallH * 0.4]}
+				/>
+			)}
+
+
+			<mesh
+				name="media-placeholder-front-desk"
+				position={[cx, FLOOR_TOP + counterBodyH * 0.5, cz + cd / 2 + 0.01]}
+				userData={{ placeholderId: "front_desk", mediaType: "image" }}
+			>
+				<boxGeometry args={[cw * 0.92, counterBodyH * 0.7, 0.02]} />
+				<meshLambertMaterial color={accent} />
+			</mesh>
+			{media?.front_desk?.type === "image" && (
+				<StallImagePlane
+					url={media.front_desk.url}
+					position={[cx, FLOOR_TOP + counterBodyH * 0.5, cz + cd / 2 + 0.021]}
+					size={[cw * 0.92, counterBodyH * 0.7]}
+				/>
+			)}
+
 
 			{/* Real downlights aligned with the four ceiling light panels. */}
 			{/* {stallLightPositions.map((position, index) => (
@@ -1074,7 +1110,11 @@ export default function SmallStall({
 					<meshBasicMaterial map={labelTexture} toneMapped={false} />
 				</mesh>
 			)}
-			<mesh position={[0, brandY, zIn + 0.048]}>
+			<mesh
+				name="media-placeholder-back-screen"
+				position={[0, brandY, zIn + 0.048]}
+				userData={{ placeholderId: "back_screen", mediaType: "image-or-video" }}
+			>
 				<boxGeometry args={[brandW, brandH, 0.008]} />
 				<meshStandardMaterial
 					color={C.screenFace}
@@ -1084,6 +1124,21 @@ export default function SmallStall({
 					metalness={0.08}
 				/>
 			</mesh>
+			{media?.back_screen?.type === "image" && (
+				<StallImagePlane
+					url={media.back_screen.url}
+					position={[0, brandY, zIn + 0.053]}
+					size={[brandW, brandH]}
+				/>
+			)}
+			{media?.back_screen?.type === "video" && (
+				<StallVideoPlane
+					url={media.back_screen.url}
+					position={[0, brandY, zIn + 0.053]}
+					size={[brandW, brandH]}
+				/>
+			)}
+
 
 			<group ref={detailRef} name="nearby-stall-details">
 				{/* Keep the receptionist only for nearby stalls to reduce draw and

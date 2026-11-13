@@ -16,6 +16,6 @@ const HallCanvas = dynamic(() => import("./HallCanvas"), {
 	),
 });
 
-export default function HallCanvasLoader() {
-	return <HallCanvas />;
+export default function HallCanvasLoader({ focusStallId }: { focusStallId?: string }) {
+	return <HallCanvas focusStallId={focusStallId} />;
 }

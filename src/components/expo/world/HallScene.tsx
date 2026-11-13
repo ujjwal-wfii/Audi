@@ -10,13 +10,13 @@ import type {
 	HallPath,
 	StallType,
 } from "@/lib/expo/layout/schema";
-// import Ceiling from "./Ceiling";
 import LargeStall from "../stalls/LargeStall";
 import MediumStall from "../stalls/MediumStall";
 import SmallStall from "../stalls/SmallStall";
 import SpecialStall from "../stalls/SpecialStall";
-import type { StallVisualProps } from "../stalls/stallTypes";
+import type { StallVisualProps, StallMedia } from "../stalls/stallTypes";
 import Ceiling from "./Ceiling";
+import { getStallArrival, getSmallStall, getStallRotation } from "../stalls/stallLayout";
 
 const layout = hallLayoutJson as HallLayout;
 
@@ -37,45 +37,28 @@ const MAX_PITCH = Math.PI / 2.3;
 // const MAX_MOVEMENT_TURN_RATE = 2.2;
 
 type Rect = { minX: number; maxX: number; minZ: number; maxZ: number };
-type StallFrontDirection = "positive-z" | "negative-z";
-
-const explicitStallFrontDirections: Record<string, StallFrontDirection> = {
-	S11: "negative-z",
-	S12: "negative-z",
-	S13: "negative-z",
-	S14: "negative-z",
-	S15: "negative-z",
-	S16: "negative-z",
-	S17: "negative-z",
-	S18: "negative-z",
-	S19: "negative-z",
-	S20: "negative-z",
-	SP3: "negative-z",
-	SP4: "negative-z",
-	L3: "negative-z",
-	L4: "negative-z",
-	M11: "negative-z",
-	M12: "negative-z",
-	M13: "negative-z",
-	M14: "negative-z",
-};
-
 function circleHitsRect(x: number, z: number, radius: number, rect: Rect) {
 	const nearestX = THREE.MathUtils.clamp(x, rect.minX, rect.maxX);
 	const nearestZ = THREE.MathUtils.clamp(z, rect.minZ, rect.maxZ);
 	return (x - nearestX) ** 2 + (z - nearestZ) ** 2 < radius ** 2;
 }
 
-function StallBlock({ stall }: { stall: Stall }) {
+function StallBlock({
+	stall,
+	media,
+}: {
+	stall: Stall;
+	media?: StallMedia;
+}) {
 	const [width, height, depth] = layout.stall_sizes[stall.type];
 	const [x, , z] = stall.center;
-	const frontDirection = explicitStallFrontDirections[stall.id];
-	const rotationY = frontDirection === "negative-z" ? Math.PI : 0;
+	const rotationY = getStallRotation(stall);
 	const props: StallVisualProps = {
 		stall,
 		rotationY,
 		size: [width, height, depth],
 		color: stallColors[stall.type],
+		media: stall.type === "small" ? media : undefined,
 	};
 	const StallComponent = {
 		small: SmallStall,
@@ -110,6 +93,8 @@ function PathRegion({ path }: { path: HallPath }) {
 	);
 }
 
+const sideExitZ = [15, -4, -18];
+
 function HallWalls() {
 	const { min, max } = layout.hall;
 	const wallHeight = layout.hall.ceiling_height;
@@ -117,7 +102,7 @@ function HallWalls() {
 	const width = max.x - min.x;
 
 	// Keep entrance open across the central 8 m at +Z.
-	const sideExitZ = [15, -4, -18];
+
 	const exitHalfWidth = 1.8;
 	const sideSegments = useMemo(() => {
 		const segments: Array<{
@@ -185,7 +170,7 @@ function HallWalls() {
 const ACCELERATION = 10; // higher = snappier start/stop
 const TURN_SPEED = 1.8; // rad/s for arrow-key turning
 
-function PlayerController() {
+function PlayerController({ focusStallId }: { focusStallId?: string }) {
 	const playerRef = useRef<THREE.Group>(null);
 	const keys = useRef<Record<string, boolean>>({});
 	const yaw = useRef(0);
@@ -228,6 +213,7 @@ function PlayerController() {
 		document.addEventListener("mousemove", onMouseMove);
 		return () => {
 			canvas.removeEventListener("click", lockPointer);
+            if (document.pointerLockElement === canvas) document.exitPointerLock();
 			document.removeEventListener("mousemove", onMouseMove);
 		};
 	}, [gl]);
@@ -268,9 +254,16 @@ function PlayerController() {
 
 	// Spawn
 	useEffect(() => {
-		const [x, y, z] = layout.player_spawn.position;
-		playerRef.current?.position.set(x, y, z);
-	}, []);
+        const arrival = getStallArrival(getSmallStall(focusStallId));
+        const [x, y, z] = arrival.position;
+        playerRef.current?.position.set(x, y, z);
+        yaw.current = arrival.yaw;
+        pitch.current = -0.08;
+        velocity.current.set(0, 0);
+        keys.current = {};
+        camera.position.set(x, y + EYE_HEIGHT, z);
+        camera.rotation.set(pitch.current, yaw.current, 0, "YXZ");
+    }, [focusStallId, camera]);
 
 	useFrame((_, rawDelta) => {
 		const player = playerRef.current;
@@ -379,7 +372,15 @@ function PlayerController() {
 		</group>
 	);
 }
-export default function HallScene() {
+type HallSceneProps = {
+	mediaByStall?: Record<string, StallMedia>;
+    focusStallId?: string;
+};
+
+export default function HallScene({
+	mediaByStall = {},
+    focusStallId,
+}: HallSceneProps) {
 	const floorSize = layout.hall.floor_size;
 	const floorCenter = layout.hall.floor_center;
 
@@ -401,11 +402,16 @@ export default function HallScene() {
 				<PathRegion key={path.id} path={path} />
 			))}
 			{layout.stalls.map((stall) => (
-				<StallBlock key={stall.id} stall={stall} />
+				<StallBlock
+					key={stall.id}
+					stall={stall}
+					media={mediaByStall[stall.id]}
+				/>
 			))}
 			<HallWalls />
 			<Ceiling hall={hallLayoutJson.hall} />
-			<PlayerController />
+
+			<PlayerController focusStallId={focusStallId} />
 		</>
 	);
 }
