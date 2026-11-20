@@ -11,7 +11,7 @@ export type StallMediaState = {
     setImage: (stallId: string, slot: StallMediaSlot, url: string) => void;
     removeImage: (stallId: string, slot: StallMediaSlot) => void;
 };
-// Shared across client-side routes. URLs remain valid while this tab is open.
+// Local preview media, indexed by stall ID and display area.
 export const useStallMediaStore = create<StallMediaState>((set, get) => ({
     mediaByStall: {},
     setImage: (stallId, slot, url) => get().setMedia(stallId, slot, { url, type: "image" }),

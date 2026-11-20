@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { getSmallStall, smallStalls } from "../stalls/stallLayout";
 import { uploadStallMedia, useStallMediaStore } from "../stalls/stallMediaStore";
@@ -50,10 +49,7 @@ export default function StallEditor({ initialStallId }: { initialStallId: string
         <main className="grid h-dvh grid-cols-1 grid-rows-[1fr_1fr] overflow-hidden bg-[#5C2018] text-[#F3E0DC] md:grid-cols-2 md:grid-rows-1">
             <section className="overflow-y-auto border-b-4 border-[#BC4639] p-5 md:border-b-0 md:border-r-4 md:p-10 lg:p-14" aria-label="Stall media editor">
                 <div className="mx-auto max-w-lg">
-                    <Link href="/expo" className="text-sm text-[#D4A59A] underline-offset-4 hover:text-[#F3E0DC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8BEAC]">
-                        Back to exhibition hall
-                    </Link>
-                    <p className="mt-8 text-sm font-medium text-[#D4A59A]">Exhibitor studio</p>
+                    <p className="text-sm font-medium text-[#D4A59A]">Exhibitor studio</p>
                     <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[#F3E0DC]">Make your stall yours.</h1>
                     <p className="mt-3 text-sm leading-6 text-[#D4A59A]">Your selected stall updates as you edit.</p>
 
@@ -105,12 +101,7 @@ export default function StallEditor({ initialStallId }: { initialStallId: string
 
                         <div className="border-t border-[#D4A59A]/30 pt-5">
                             <p className="mb-3 text-xs text-[#D4A59A]">{slots.filter((item) => media?.[item.value]).length} of 4 display areas customized</p>
-                            {uploading
-                                ? <span className="block rounded-xl bg-black/30 p-3 text-center text-sm text-[#D4A59A]">Preparing preview...</span>
-                                : <Link href={`/expo?stall=${encodeURIComponent(stall.id)}`}
-                                    className="block rounded-xl bg-[#E8BEAC] p-3 text-center text-sm font-semibold text-[#5C2018] shadow-lg shadow-black/20 transition-colors hover:bg-[#F2D2C2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F3E0DC]">
-                                    View {stall.id} in exhibition hall
-                                </Link>}
+                            <p className="text-xs text-[#D4A59A]">Local preview only. Images and videos clear on refresh.</p>
                         </div>
                     </form>
                 </div>

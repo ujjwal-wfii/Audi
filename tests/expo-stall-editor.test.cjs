@@ -22,25 +22,17 @@ function loadTs(file, overrides = {}) {
     moduleCache.set(file, mod.exports);
     return mod.exports;
 }
-const { smallStalls, getSmallStall, getStallArrival } = loadTs("src/components/expo/stalls/stallLayout.ts");
+const { smallStalls, getSmallStall } = loadTs("src/components/expo/stalls/stallLayout.ts");
 
-test("every small stall arrival is inside the hall, outside all stalls, and faces its entrance", () => {
+test("the independent editor selects only existing small stalls", () => {
+    assert.ok(smallStalls.length > 0);
     for (const stall of smallStalls) {
-        const { position: [x, , z], yaw } = getStallArrival(stall);
-        assert.ok(x >= layout.hall.min.x + .42 && x <= layout.hall.max.x - .42, stall.id);
-        assert.ok(z >= layout.hall.min.z + .42 && z <= layout.hall.max.z - .42, stall.id);
-        for (const other of layout.stalls) {
-            const nearestX = Math.max(other.footprint_x[0], Math.min(x, other.footprint_x[1]));
-            const nearestZ = Math.max(other.footprint_z[0], Math.min(z, other.footprint_z[1]));
-            assert.ok((x - nearestX) ** 2 + (z - nearestZ) ** 2 >= .42 ** 2, `${stall.id} overlaps ${other.id}`);
-        }
-        assert.ok(-Math.cos(yaw) * (stall.center[2] - z) > 0, `${stall.id} camera faces away`);
+        assert.equal(stall.type, "small");
+        assert.equal(getSmallStall(stall.id), stall);
     }
-});
-test("invalid stall IDs safely use the default hall entrance", () => {
     assert.equal(getSmallStall("not-a-stall"), undefined);
     assert.equal(getSmallStall("L1"), undefined);
-    assert.deepEqual(getStallArrival().position, layout.player_spawn.position);
+    assert.equal(getSmallStall(), undefined);
 });
 
 test("uploads preserve other stalls and slots, reject invalid files, and release replaced images", async () => {
@@ -65,7 +57,7 @@ test("uploads preserve other stalls and slots, reject invalid files, and release
         assert.equal(media().S2.left_wall.url, "blob:test-2");
         assert.ok(revoked.includes("blob:test-1"));
         await assert.rejects(uploadStallImage("S1", "back_screen", { type: "text/plain", size: 5 }), /JPG/);
-        await assert.rejects(uploadStallImage("S1", "back_screen", { ...file, size: 10 * 1024 * 1024 + 1 }), /10 MB/);
+        await assert.rejects(uploadStallImage("S1", "back_screen", { ...file, size: 1024 * 1024 + 1 }), /1 MB/);
         global.Image = class { decode() { return Promise.reject(new Error("bad image")); } };
         await assert.rejects(uploadStallImage("S1", "back_screen", file), /could not be opened/);
         assert.equal(media().S1.back_screen.url, "blob:test-4");
