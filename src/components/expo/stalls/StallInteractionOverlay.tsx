@@ -276,13 +276,7 @@ export default function StallInteractionOverlay() {
 						inset 0 1px 2px rgba(255, 255, 255, 0.5);
 					backdrop-filter: blur(18px) saturate(175%);
 					-webkit-backdrop-filter: blur(18px) saturate(175%);
-					clip-path: polygon(
-						0 0,
-						100% 0,
-						calc(100% - 14px) 50%,
-						100% 100%,
-						0 100%
-					);
+					border-radius: 12px;
 					cursor: pointer;
 				}
 
@@ -470,7 +464,8 @@ export default function StallInteractionOverlay() {
 				}
 
 				@media (orientation: portrait) {
-					.stall-action-controls {
+					.stall-action-controls,
+					.glass-center-card {
 						display: none;
 					}
 				}
