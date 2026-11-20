@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import HallScene from "./HallScene";
 import StallInteractionOverlay from "../stalls/StallInteractionOverlay";
 
@@ -43,7 +43,9 @@ function MobileControl({
 }
 
 export default function HallCanvas() {
+	const mainRef = useRef<HTMLElement>(null);
 	const [isPortrait, setIsPortrait] = useState(false);
+	const [isFullscreen, setIsFullscreen] = useState(false);
 
 	useEffect(() => {
 		const media = window.matchMedia("(orientation: portrait)");
@@ -53,11 +55,30 @@ export default function HallCanvas() {
 		return () => media.removeEventListener("change", updateOrientation);
 	}, []);
 
+	useEffect(() => {
+		const updateFullscreen = () =>
+			setIsFullscreen(document.fullscreenElement === mainRef.current);
+		document.addEventListener("fullscreenchange", updateFullscreen);
+		updateFullscreen();
+		return () =>
+			document.removeEventListener("fullscreenchange", updateFullscreen);
+	}, []);
+
+	const toggleFullscreen = async () => {
+		try {
+			if (document.fullscreenElement) {
+				await document.exitFullscreen();
+				return;
+			}
+			await mainRef.current?.requestFullscreen();
+		} catch {
+			// Fullscreen can be unavailable or blocked by the browser.
+		}
+	};
+
 	const requestLandscape = async () => {
 		try {
-			if (document.documentElement.requestFullscreen) {
-				await document.documentElement.requestFullscreen();
-			}
+			if (!document.fullscreenElement) await mainRef.current?.requestFullscreen();
 			const orientation = screen.orientation as ScreenOrientation & {
 				lock?: (orientation: "landscape") => Promise<void>;
 			};
@@ -69,8 +90,11 @@ export default function HallCanvas() {
 	};
 
 	return (
-		<main className="relative h-[100dvh] min-h-[420px] w-full overflow-hidden bg-slate-950">
-			<div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[calc(100%-1.5rem)] rounded-xl border border-white/15 bg-slate-950/80 px-3 py-2 text-white shadow-lg backdrop-blur sm:left-4 sm:top-4 sm:px-4 sm:py-3">
+		<main
+			ref={mainRef}
+			className="relative h-[100dvh] min-h-[420px] w-full overflow-hidden bg-slate-950"
+		>
+			<div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[calc(100%-8rem)] rounded-xl border border-white/15 bg-slate-950/80 px-3 py-2 text-white shadow-lg backdrop-blur sm:left-4 sm:top-4 sm:max-w-[calc(100%-1.5rem)] sm:px-4 sm:py-3">
 				<p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
 					OPEXN · Greybox
 				</p>
@@ -82,6 +106,14 @@ export default function HallCanvas() {
 				</p>
 			</div>
 
+			<button
+				type="button"
+				className="absolute right-3 top-3 z-20 rounded-xl border border-white/25 bg-slate-950/80 px-3 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur sm:right-4 sm:top-4 sm:px-4 sm:py-3 lg:hidden"
+				onClick={toggleFullscreen}
+			>
+				{isFullscreen ? "Exit full screen" : "Full screen"}
+			</button>
+
 			<div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-slate-300 sm:bottom-4 sm:left-4">
 				<span className="hidden lg:inline">
 					Double-click to enable look mode, then drag · WASD / arrows
@@ -92,7 +124,7 @@ export default function HallCanvas() {
 				</span>
 			</div>
 
-			<div className="pointer-events-none absolute bottom-3 right-3 z-10 grid grid-cols-3 gap-2 sm:bottom-5 sm:right-5 lg:hidden">
+			<div className="pointer-events-none absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] z-40 grid grid-cols-3 gap-2 sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] sm:right-5 lg:hidden">
 				<span />
 				<MobileControl
 					label="Move forward"
@@ -110,8 +142,8 @@ export default function HallCanvas() {
 			</div>
 
 			{isPortrait && (
-				<div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/95 p-6 text-center text-white">
-					<div className="max-w-sm rounded-2xl border border-cyan-300/30 bg-slate-900 p-6 shadow-2xl">
+				<div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-slate-950/95 p-6 text-center text-white">
+					<div className="pointer-events-auto max-w-sm rounded-2xl border border-cyan-300/30 bg-slate-900 p-6 shadow-2xl">
 						<div className="mb-3 text-4xl" aria-hidden="true">
 							↔
 						</div>

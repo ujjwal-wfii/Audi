@@ -28,24 +28,24 @@ const HALL_WALL_TEXTURE_URL =
 const MAIN_EXIT_WIDTH = 8;
 const MAIN_EXIT_HEIGHT = 4.5;
 
-function createEndWallMaterial(
-	texture: THREE.Texture,
-	repeatX: number,
-	repeatY: number,
-	offsetX = 0,
-) {
-	const wallTexture = texture.clone();
-	wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
-	wallTexture.repeat.set(repeatX, repeatY);
-	wallTexture.offset.x = offsetX;
-	wallTexture.colorSpace = THREE.SRGBColorSpace;
-	wallTexture.anisotropy = 16;
-	wallTexture.needsUpdate = true;
-	return new THREE.MeshStandardMaterial({
-		map: wallTexture,
-		roughness: 0.8,
-	});
-}
+// function createEndWallMaterial(
+// 	texture: THREE.Texture,
+// 	repeatX: number,
+// 	repeatY: number,
+// 	offsetX = 0,
+// ) {
+// 	const wallTexture = texture.clone();
+// 	wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+// 	wallTexture.repeat.set(repeatX, repeatY);
+// 	wallTexture.offset.x = offsetX;
+// 	wallTexture.colorSpace = THREE.SRGBColorSpace;
+// 	wallTexture.anisotropy = 16;
+// 	wallTexture.needsUpdate = true;
+// 	return new THREE.MeshStandardMaterial({
+// 		map: wallTexture,
+// 		roughness: 0.8,
+// 	});
+// }
 
 const stallColors: Record<StallType, string> = {
 	small: "#2F7F7B",
