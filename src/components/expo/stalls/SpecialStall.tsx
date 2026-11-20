@@ -1,7 +1,7 @@
 import { RoundedBox, Text, useTexture } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
-import type { StallVisualProps } from "./stallTypes";
+import type { StallVisualProps } from "../../../lib/expo/layout/stallTypes";
 
 export default function SpecialStall({
 	stall,

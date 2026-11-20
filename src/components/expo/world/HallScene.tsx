@@ -16,7 +16,7 @@ import LargeStall from "../stalls/LargeStall";
 import MediumStall from "../stalls/MediumStall";
 import SmallStall from "../stalls/SmallStall";
 import SpecialStall from "../stalls/SpecialStall";
-import type { StallVisualProps } from "../stalls/stallTypes";
+import type { StallVisualProps } from "../../../lib/expo/layout/stallTypes";
 import Ceiling from "./Ceiling";
 import StallProximityTracker from "../stalls/StallProximityTracker";
 import { interactionStore } from "@/lib/expo/stall-interactivity/interactionStore";
