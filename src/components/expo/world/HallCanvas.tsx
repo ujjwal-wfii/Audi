@@ -94,7 +94,7 @@ export default function HallCanvas() {
 			ref={mainRef}
 			className="relative h-[100dvh] min-h-[420px] w-full overflow-hidden bg-slate-950"
 		>
-			<div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[calc(100%-8rem)] rounded-xl border border-white/15 bg-slate-950/80 px-3 py-2 text-white shadow-lg backdrop-blur sm:left-4 sm:top-4 sm:max-w-[calc(100%-1.5rem)] sm:px-4 sm:py-3">
+			{/* <div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[calc(100%-8rem)] rounded-xl border border-white/15 bg-slate-950/80 px-3 py-2 text-white shadow-lg backdrop-blur sm:left-4 sm:top-4 sm:max-w-[calc(100%-1.5rem)] sm:px-4 sm:py-3">
 				<p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
 					OPEXN · Greybox
 				</p>
@@ -104,7 +104,7 @@ export default function HallCanvas() {
 				<p className="mt-1 text-xs text-slate-300">
 					60 m × 65 m · 43 stalls · double-click and drag to look
 				</p>
-			</div>
+			</div> */}
 
 			<button
 				type="button"
