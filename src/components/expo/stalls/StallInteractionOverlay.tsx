@@ -118,6 +118,7 @@ export default function StallInteractionOverlay() {
 		text: string;
 		stallId: string;
 	} | null>(null);
+	const [actionsVisible, setActionsVisible] = useState(true);
 
 	// E opens / closes the interaction panel.
 	useEffect(() => {
@@ -143,6 +144,7 @@ export default function StallInteractionOverlay() {
 					interactionStore.closePanel();
 				} else {
 					setMessage(null);
+					setActionsVisible(true);
 					openPanel();
 				}
 			}
@@ -168,6 +170,7 @@ export default function StallInteractionOverlay() {
 			<button
 				onClick={() => {
 					setMessage(null);
+					setActionsVisible(true);
 					openPanel();
 				}}
 				className="
@@ -259,6 +262,36 @@ export default function StallInteractionOverlay() {
 						border-color 300ms ease,
 						box-shadow 300ms ease,
 						background 300ms ease;
+				}
+
+				.glass-center-card {
+					position: relative;
+					isolation: isolate;
+					overflow: hidden;
+					background: rgba(255, 255, 255, 0.68);
+					border: 1px solid rgba(255, 255, 255, 0.7);
+					color: #0f172a;
+					box-shadow:
+						0 8px 30px rgba(0, 0, 0, 0.18),
+						inset 0 1px 2px rgba(255, 255, 255, 0.5);
+					backdrop-filter: blur(18px) saturate(175%);
+					-webkit-backdrop-filter: blur(18px) saturate(175%);
+					clip-path: polygon(
+						0 0,
+						100% 0,
+						calc(100% - 14px) 50%,
+						100% 100%,
+						0 100%
+					);
+					cursor: pointer;
+				}
+
+				.glass-center-card:hover {
+					background: rgba(255, 255, 255, 0.82);
+					box-shadow:
+						0 12px 35px rgba(0, 0, 0, 0.22),
+						0 0 22px rgba(103, 232, 249, 0.12),
+						inset 0 1px 3px rgba(255, 255, 255, 0.6);
 				}
 
 				@media (min-width: 1024px) {
@@ -460,7 +493,8 @@ export default function StallInteractionOverlay() {
 						flex flex-col items-center
 						gap-2 lg:gap-8 xl:gap-10
 					">
-						{OPTIONS.slice(0, 3).map((option, i) => (
+						{actionsVisible &&
+							OPTIONS.slice(0, 3).map((option, i) => (
 							<GlassActionButton
 								key={option.key}
 								option={option}
@@ -471,11 +505,13 @@ export default function StallInteractionOverlay() {
 										: ""
 								}
 							/>
-						))}
+							))}
 					</div>
 
 					{/* CENTER EXHIBITOR CARD */}
-					<div className="
+					<div
+						className="
+						glass-center-card
 						absolute left-1/2 top-[44%]
 						-translate-x-1/2 -translate-y-1/2
 
@@ -484,29 +520,31 @@ export default function StallInteractionOverlay() {
 						w-[175px] lg:w-[190px]
 						rounded-xl px-4 py-4
 
-						text-center text-white
-
-						bg-gradient-to-br
-						from-slate-900/80
-						to-slate-950/75
-
-						border border-white/15
-
-						shadow-[0_0_25px_rgba(34,211,238,0.12)]
-
-						backdrop-blur-2xl
-					">
+						text-center
+					"
+						onClick={() => setActionsVisible((visible) => !visible)}
+						role="button"
+						tabIndex={0}
+						onKeyDown={(event) => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								setActionsVisible((visible) => !visible);
+							}
+						}}
+					>
 						{/* Close */}
 						<button
-							onClick={() => {
+							onClick={(event) => {
+								event.stopPropagation();
 								setMessage(null);
+								setActionsVisible(false);
 								interactionStore.closePanel();
 							}}
 							aria-label="Close"
 							className="
 								absolute top-2 right-3
-								text-base text-slate-400
-								hover:text-white
+								text-base text-slate-800
+								hover:text-black
 								transition-colors
 							"
 						>
@@ -515,23 +553,23 @@ export default function StallInteractionOverlay() {
 
 						{/* Company */}
 						<h2 className="
-							text-base font-extrabold
+							text-base font-extrabold text-slate-950
 							mt-2 leading-tight
 						">
 							{info.company}
 						</h2>
 
-						<p className="text-[10px] text-slate-400 mt-1">
+						<p className="mt-1 text-[10px] text-slate-700">
 							{info.tagline}
 						</p>
 						{message?.stallId === stall.id && (
-							<p className="mt-3 text-[10px] text-cyan-200">
+							<p className="mt-3 text-[10px] text-cyan-800">
 								{message.text}
 							</p>
 						)}
 
 						{/* Footer */}
-						<p className="mt-3 text-[9px] text-slate-400">
+						<p className="mt-3 text-[9px] text-slate-700">
 							<span className="lg:hidden">
 								Tap × to close
 							</span>
@@ -552,7 +590,8 @@ export default function StallInteractionOverlay() {
 						flex flex-col items-center
 						gap-2 lg:gap-8 xl:gap-10
 					">
-						{OPTIONS.slice(3, 6).map((option, i) => (
+						{actionsVisible &&
+							OPTIONS.slice(3, 6).map((option, i) => (
 							<GlassActionButton
 								key={option.key}
 								option={option}
@@ -563,7 +602,7 @@ export default function StallInteractionOverlay() {
 										: ""
 								}
 							/>
-						))}
+							))}
 					</div>
 
 					{/* ACTION FEEDBACK */}

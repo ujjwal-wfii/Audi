@@ -124,22 +124,24 @@ export default function HallCanvas() {
 				</span>
 			</div>
 
-			<div className="pointer-events-none absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] z-40 grid grid-cols-3 gap-2 sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] sm:right-5 lg:hidden">
-				<span />
-				<MobileControl
-					label="Move forward"
-					icon="↑"
-					keyName="arrowup"
-				/>
-				<span />
-				<MobileControl label="Move left" icon="←" keyName="a" />
-				<MobileControl
-					label="Move backward"
-					icon="↓"
-					keyName="arrowdown"
-				/>
-				<MobileControl label="Move right" icon="→" keyName="d" />
-			</div>
+			{!isPortrait && (
+				<div className="pointer-events-none absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] z-40 grid grid-cols-3 gap-2 sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom))] sm:right-5 lg:hidden">
+					<span />
+					<MobileControl
+						label="Move forward"
+						icon="↑"
+						keyName="arrowup"
+					/>
+					<span />
+					<MobileControl label="Move left" icon="←" keyName="a" />
+					<MobileControl
+						label="Move backward"
+						icon="↓"
+						keyName="arrowdown"
+					/>
+					<MobileControl label="Move right" icon="→" keyName="d" />
+				</div>
+			)}
 
 			{isPortrait && (
 				<div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-slate-950/95 p-6 text-center text-white">
