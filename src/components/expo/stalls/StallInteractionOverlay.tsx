@@ -435,6 +435,12 @@ export default function StallInteractionOverlay() {
 						transition: none;
 					}
 				}
+
+				@media (orientation: portrait) {
+					.stall-action-controls {
+						display: none;
+					}
+				}
 			`}</style>
 
 			<div className="
@@ -446,6 +452,7 @@ export default function StallInteractionOverlay() {
 
 					{/* LEFT ACTION BUTTONS */}
 					<div className="
+						stall-action-controls
 						absolute left-[3vw] top-[12%]
 						xl:left-[5vw]
 						lg:top-1/2 lg:-translate-y-1/2
@@ -537,6 +544,7 @@ export default function StallInteractionOverlay() {
 
 					{/* RIGHT ACTION BUTTONS */}
 					<div className="
+						stall-action-controls
 						absolute right-[3vw] top-[12%]
 						xl:right-[5vw]
 						lg:top-1/2 lg:-translate-y-1/2
