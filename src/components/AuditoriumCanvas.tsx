@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AuditoriumScene } from './scene/AuditoriumScene';
 import { AuditoriumHUD } from './ui/AuditoriumHUD';
-import { SceneState, PovPosition } from '@/types/auditorium';
+import { SceneState } from '@/types/auditorium';
 import { generateSeatingLayout } from '@/utils/seatLayout';
 
 export const AuditoriumCanvas: React.FC = () => {
@@ -14,9 +14,6 @@ export const AuditoriumCanvas: React.FC = () => {
   // APPLICATION STATE
   // -------------------------------------------------------------
   const [sceneState, setSceneState] = useState<SceneState>('LOBBY');
-  const [currentPov, setCurrentPov] = useState<PovPosition>('CENTER');
-  const [isGateHovered, setIsGateHovered] = useState(false);
-
   // Mobile orientation
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
 
@@ -67,17 +64,7 @@ export const AuditoriumCanvas: React.FC = () => {
       containerRef.current,
       initialSeats,
       {
-        onGateHover: (hovering) => {
-          setIsGateHovered(hovering);
-        },
-
-        onStateChange: (state) => {
-          setSceneState(state);
-        },
-
-        onPovChange: (pov) => {
-          setCurrentPov(pov);
-        },
+        onStateChange: setSceneState,
       }
     );
 
@@ -88,67 +75,6 @@ export const AuditoriumCanvas: React.FC = () => {
       sceneRef.current = null;
     };
   }, []);
-
-  // -------------------------------------------------------------
-  // ENTER AUDITORIUM
-  // -------------------------------------------------------------
-  const handleEnterAuditorium = () => {
-    // -----------------------------------------------------------
-    // MOBILE PORTRAIT
-    // Show rotate message instead of entering.
-    // -----------------------------------------------------------
-    if (isPortraitMobile) {
-      setShowRotateMessage(true);
-      return;
-    }
-
-    // -----------------------------------------------------------
-    // LANDSCAPE / DESKTOP
-    // Enter normally.
-    // -----------------------------------------------------------
-    if (sceneRef.current) {
-      sceneRef.current.enterAuditorium('CENTER');
-    }
-  };
-
-  // -------------------------------------------------------------
-  // POV CHANGE
-  // -------------------------------------------------------------
-  const handlePovChange = (pov: PovPosition) => {
-    // Don't allow POV changes while portrait.
-    if (isPortraitMobile) {
-      setShowRotateMessage(true);
-      return;
-    }
-
-    setCurrentPov(pov);
-
-    if (sceneRef.current) {
-      sceneRef.current.switchPov(pov);
-    }
-  };
-
-  // -------------------------------------------------------------
-  // LIGHTING
-  // -------------------------------------------------------------
-  const handleLightingChange = (
-    mode: 'PRESENTATION' | 'HOUSE' | 'CYBER'
-  ) => {
-    if (sceneRef.current) {
-      sceneRef.current.setLightingMode(mode);
-    }
-  };
-
-  // -------------------------------------------------------------
-  // VIEW MODE
-  // -------------------------------------------------------------
-  const handleViewModeChange = (
-    mode: 'POV' | 'OVERVIEW' | 'LOBBY'
-  ) => {
-    if (sceneRef.current) {
-      sceneRef.current.setViewMode(mode);
-    }
-  };
 
   // -------------------------------------------------------------
   // RENDER
@@ -169,12 +95,7 @@ export const AuditoriumCanvas: React.FC = () => {
       ========================================================= */}
       <AuditoriumHUD
         sceneState={sceneState}
-        currentPov={currentPov}
-        isGateHovered={isGateHovered}
-        onEnterClick={handleEnterAuditorium}
-        onPovChange={handlePovChange}
-        onLightingChange={handleLightingChange}
-        onViewModeChange={handleViewModeChange}
+        onExit={() => sceneRef.current?.exitToLobby()}
       />
 
       {/* =========================================================

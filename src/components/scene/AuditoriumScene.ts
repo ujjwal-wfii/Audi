@@ -1,74 +1,52 @@
 import * as THREE from "three";
 import gsap from "gsap";
-import { SeatData, PovPosition } from "@/types/auditorium";
-import { STAGE_CENTER, ROW_CONFIGS } from "@/utils/seatLayout";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
+import { SeatData, SceneState } from "@/types/auditorium";
+import { STAGE_CENTER, ROW_CONFIGS, FIRST_ROW_Z, ROW_SPACING } from "@/utils/seatLayout";
 import {
 	createKeynoteScreenTexture,
 	createEntranceSignTexture,
 	createDoorSignTexture,
 	createWoodStageTexture,
-	createCarpetTexture,
 	createMarbleTexture,
 } from "@/utils/textureGenerator";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import {
 	CSS3DRenderer,
 	CSS3DObject,
 } from "three/examples/jsm/renderers/CSS3DRenderer.js";
-import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
-export interface PovConfig {
-	id: PovPosition;
-	name: string;
-	badge: string;
-	description: string;
-	position: THREE.Vector3;
-	lookAt: THREE.Vector3;
-	associatedSeatId: string;
-}
+const gateZ = 32;
+const lastRowIndex = ROW_CONFIGS.length - 1;
+const lastRowElevation = ROW_CONFIGS[lastRowIndex].elevation;
+const lastRowEdge = FIRST_ROW_Z + (lastRowIndex + 0.5) * ROW_SPACING;
+const rearStepCount = Math.ceil((gateZ - lastRowEdge) / ROW_SPACING);
+const rearStepDepth = (gateZ - lastRowEdge) / rearStepCount;
+const rearStepRise = lastRowElevation - ROW_CONFIGS[lastRowIndex - 1].elevation;
+const lobbyElevation = lastRowElevation + rearStepCount * rearStepRise;
 
-// 3 Best Seat POVs: 90% Screen Viewport Immersion with Direct Frontal Gaze (Delta Y = 0) and Zero Hindrance
-export const POV_PRESETS: Record<PovPosition, PovConfig> = {
-	LEFT: {
-		id: "LEFT",
-		name: "Left VIP Seat POV",
-		badge: "Left VIP • 90% Screen Immersion",
-		description:
-			"Direct straight-on frontal presentation view with 90% screen viewport occupancy",
-		position: new THREE.Vector3(-3.2, 7.0, 15.5),
-		lookAt: new THREE.Vector3(0.4, 7.0, -8.5),
-		associatedSeatId: "C-3",
-	},
-	CENTER: {
-		id: "CENTER",
-		name: "Center VIP Sweet-Spot POV",
-		badge: "Center Sweet-Spot • 90% Screen Immersion",
-		description:
-			"Prime central direct presentation view with 90% screen viewport occupancy",
-		position: new THREE.Vector3(0, 7.0, 15.2),
-		lookAt: new THREE.Vector3(0, 7.0, -8.5),
-		associatedSeatId: "C-10",
-	},
-	RIGHT: {
-		id: "RIGHT",
-		name: "Right VIP Seat POV",
-		badge: "Right VIP • 90% Screen Immersion",
-		description:
-			"Direct straight-on frontal presentation view with 90% screen viewport occupancy",
-		position: new THREE.Vector3(3.2, 7.0, 15.5),
-		lookAt: new THREE.Vector3(-0.4, 7.0, -8.5),
-		associatedSeatId: "C-18",
-	},
+const desktopLobby = {
+	position: new THREE.Vector3(0, lobbyElevation + 2.2, 38),
+	focus: new THREE.Vector3(0, lobbyElevation + 2.2, 30),
+};
+const portraitLobby = {
+	position: new THREE.Vector3(0, lobbyElevation + 2.6, 36),
+	focus: new THREE.Vector3(0, lobbyElevation + 2.7, 30),
 };
 
+// Reference composition: a level rear-center view, with the screen spanning
+// 51% of the width at the reference image's 2:1 aspect ratio.
+const seatedPosition = new THREE.Vector3(0, 7.9, 26.5);
+const seatedFocus = new THREE.Vector3(0, 7.9, -8.5);
+const screenWidth = 28;
+const screenHeight = 12.6;
+const stageHeight = 1.2;
+const screenCenterY = 1.6 + screenHeight / 2;
+
 export interface SceneCallbacks {
-	onGateHover: (hovering: boolean) => void;
-	onStateChange: (
-		state: "LOBBY" | "ENTERING" | "SEATED" | "CHANGING_SEAT" | "OVERVIEW",
-	) => void;
-	onPovChange: (pov: PovPosition) => void;
+	onStateChange: (state: SceneState) => void;
 }
 
 export class AuditoriumScene {
@@ -86,27 +64,15 @@ export class AuditoriumScene {
 	private callbacks: SceneCallbacks;
 
 	// State
-	private currentPov: PovPosition = "CENTER";
-	private currentState:
-		| "LOBBY"
-		| "ENTERING"
-		| "SEATED"
-		| "CHANGING_SEAT"
-		| "OVERVIEW" = "LOBBY";
-	private isMouseLooking = true;
+	private currentState: SceneState = "LOBBY";
 	private mouse = new THREE.Vector2();
-	private targetLookAt = new THREE.Vector3(0, 5.0, -8.5);
-	private currentLookAt = new THREE.Vector3(0, 2.2, 30);
-	private mouseOffset = { x: 0, y: 0 };
+	private currentLookAt = desktopLobby.focus.clone();
 
 	// 3D Objects & Meshes
-	private seatMeshes: Map<string, THREE.Group> = new Map();
-	private seatPositions: Map<string, THREE.Vector3> = new Map();
 	private tierMeshes: THREE.Mesh[] = [];
 	private leftDoorGroup: THREE.Group = new THREE.Group();
 	private rightDoorGroup: THREE.Group = new THREE.Group();
 	private gateHitbox: THREE.Mesh | null = null;
-	private activeBeaconRing: THREE.Mesh | null = null;
 	private raycaster = new THREE.Raycaster();
 	private interactiveObjects: THREE.Object3D[] = [];
 	private screenRaycaster = new THREE.Raycaster();
@@ -145,6 +111,10 @@ export class AuditoriumScene {
 	 */
 	private isContinuousAnimationActive = false;
 	private isDestroyed = false;
+	private ceilingTexture?: THREE.Texture;
+	private carpetMaterial?: THREE.MeshStandardMaterial;
+	private sideWallTexture?: THREE.Texture;
+	private backWallTexture?: THREE.Texture;
 	// Observes the actual canvas/container size.
 	// More reliable than relying only on window resize events.
 	private resizeObserver: ResizeObserver | null = null;
@@ -152,7 +122,6 @@ export class AuditoriumScene {
 	private readonly referenceFov = 60;
 	private rightImageScreen: CSS3DObject | null = null;
 
-	private lookTarget = new THREE.Vector3();
 	private areScreensRevealed = false;
 
 	constructor(
@@ -171,7 +140,6 @@ export class AuditoriumScene {
 		const width = container.clientWidth || window.innerWidth;
 		const height = container.clientHeight || window.innerHeight;
 
-		// Camera with 54° FOV: Keynote Screen occupies 90% of viewport when seated
 		this.camera = new THREE.PerspectiveCamera(
 			this.referenceFov,
 			width / height,
@@ -179,8 +147,9 @@ export class AuditoriumScene {
 			200,
 		);
 		// Initial camera in Lobby
-		this.camera.position.set(0, 2.2, 38);
-		this.currentLookAt.set(0, 2.2, 30);
+		const lobby = height > width ? portraitLobby : desktopLobby;
+		this.camera.position.copy(lobby.position);
+		this.currentLookAt.copy(lobby.focus);
 		this.camera.lookAt(this.currentLookAt);
 
 		this.renderer = new THREE.WebGLRenderer({
@@ -351,7 +320,7 @@ export class AuditoriumScene {
 
 		// Entrance Gate Downlight
 		const lobbyLight = new THREE.PointLight(0x60a5fa, 3.0, 18);
-		lobbyLight.position.set(0, 4.5, 36);
+		lobbyLight.position.set(0, lobbyElevation + 4.5, 36);
 		this.scene.add(lobbyLight);
 	}
 	// load the YouTube IFrame API and initialize the player
@@ -404,10 +373,8 @@ export class AuditoriumScene {
 	// YOUTUBE LIVE VIDEO ON THE REAL 3D SCREEN
 	// -------------------------------------------------------------
 	private createYouTubeScreen() {
-		const screenWidth = 28;
-		const screenHeight = 13;
 
-		const youtubeVideoId = process.env.NEXT_PUBLIC_YOUTUBE_VIDEO_ID_1 || "";
+		const youtubeVideoId = process.env.NEXT_PUBLIC_YOUTUBE_VIDEO_ID_1 || "WjSNkTVHB88";
 
 		const wrapper = document.createElement("div");
 
@@ -418,7 +385,6 @@ export class AuditoriumScene {
 		wrapper.style.height = `${cssHeight}px`;
 		wrapper.style.background = "#000";
 		wrapper.style.overflow = "hidden";
-		wrapper.style.border = "20px solid #5c3822";
 		wrapper.style.boxSizing = "border-box";
 		wrapper.style.borderRadius = "18px";
 		wrapper.style.pointerEvents = "none";
@@ -450,7 +416,7 @@ export class AuditoriumScene {
 
 		const videoObject = new CSS3DObject(wrapper);
 
-		videoObject.position.set(0, screenHeight / 2, -8.49);
+		videoObject.position.set(0, screenCenterY, -8.49);
 
 		videoObject.rotation.set(0, 0, 0);
 
@@ -510,9 +476,9 @@ export class AuditoriumScene {
 		}
 	> = {
 		LEFT: {
-			videoId: process.env.NEXT_PUBLIC_PRESENTER_VIDEO_ID || "",
-			x: -11.0,
-			z: -0.5,
+			videoId: process.env.NEXT_PUBLIC_PRESENTER_VIDEO_ID || "yZrV-5vvZSE",
+			x: -14.8,
+			z: -3,
 		},
 	};
 
@@ -547,11 +513,11 @@ export class AuditoriumScene {
 		wrapper.style.overflow = "hidden";
 
 		// SAME UI / FRAME AS OLD PRESENTER SCREEN
-		wrapper.style.border = "20px solid #5c3822";
+		wrapper.style.border = "3px solid #171114";
 
 		wrapper.style.boxSizing = "border-box";
 
-		wrapper.style.borderRadius = "18px";
+		wrapper.style.borderRadius = "0";
 
 		wrapper.style.pointerEvents = "none";
 
@@ -605,7 +571,7 @@ export class AuditoriumScene {
 
 		const imageScreen = new CSS3DObject(wrapper);
 
-		imageScreen.position.set(11.0, 1.2 + screenHeight / 2, -0.5);
+		imageScreen.position.set(18.2, 8.6, -8.3);
 
 		imageScreen.rotation.set(0, 0, 0);
 
@@ -625,7 +591,6 @@ export class AuditoriumScene {
 	) {
 		const screenWidth = 4;
 		const screenHeight = 7.1111;
-		const stageHeight = 1.2;
 		const config = this.presenterScreenConfig[side];
 
 		const wrapper = document.createElement("div");
@@ -637,9 +602,9 @@ export class AuditoriumScene {
 		wrapper.style.height = `${cssHeight}px`;
 		wrapper.style.background = "#000";
 		wrapper.style.overflow = "hidden";
-		wrapper.style.border = "20px solid #5c3822";
+		wrapper.style.border = "3px solid #171114";
 		wrapper.style.boxSizing = "border-box";
-		wrapper.style.borderRadius = "18px";
+		wrapper.style.borderRadius = "0";
 		wrapper.style.pointerEvents = "none";
 
 		const iframe = document.createElement("iframe");
@@ -668,7 +633,7 @@ export class AuditoriumScene {
 		const presenterScreen = new CSS3DObject(wrapper);
 
 		presenterScreen.position.set(
-			config.x,
+			config.x+1,
 			stageHeight + screenHeight / 2,
 			config.z,
 		);
@@ -688,7 +653,7 @@ export class AuditoriumScene {
 	private createAllPresenterScreens() {
 		this.stopPresenterVideo();
 
-		this.createPresenterScreen("LEFT");
+		if (this.presenterScreenConfig.LEFT.videoId) this.createPresenterScreen("LEFT");
 
 		this.rightImageScreen = this.createRightImageScreen();
 	}
@@ -706,8 +671,6 @@ export class AuditoriumScene {
 			this.cameraWorldPosition,
 		);
 
-		const screenWidth = 28;
-		const screenHeight = 13;
 
 		const screenPoints = [
 			new THREE.Vector3(0, 0, 0),
@@ -810,16 +773,14 @@ export class AuditoriumScene {
 	}
 
 	/* -------------------------------------------------------------
-     STAGE & AUDITORIUM HALL (90% SCREEN VIEWPORT IMMERSION)
+     STAGE & AUDITORIUM HALL
   ------------------------------------------------------------- */
 	private buildAuditoriumHall() {
-		const carpetTex = createCarpetTexture();
 		const woodTexture = createWoodStageTexture();
 
 		// 1. Stage Platform
-		const stageWidth = 28;
-		const stageHeight = 1.2;
-		const stageDepth = 20;
+		const stageWidth = 34;
+		const stageDepth = 7.6;
 
 		const stageMaterial = new THREE.MeshStandardMaterial({
 			map: woodTexture,
@@ -834,13 +795,11 @@ export class AuditoriumScene {
 		);
 		const stage = new THREE.Mesh(stageGeo, stageMaterial);
 		// stage.rotation.y = -Math.PI / 2;
-		stage.position.set(STAGE_CENTER.x, stageHeight / 2, -7.5);
+		stage.position.set(STAGE_CENTER.x, stageHeight / 2, -5.4);
 		stage.receiveShadow = true;
 		this.scene.add(stage);
 		this.addScreenOccluder(stage);
 
-		const screenWidth = 28;
-		const screenHeight = 13;
 
 		const screenGeo = new THREE.PlaneGeometry(screenWidth, screenHeight);
 
@@ -858,212 +817,52 @@ export class AuditoriumScene {
 		this.screenMesh = new THREE.Mesh(screenGeo, screenMat);
 
 		// Vertical rectangular screen
-		// Bottom = 0, top = 13
-		this.screenMesh.position.set(0, screenHeight / 2, -8.5);
+		// The lower edge sits above the stage deck.
+		this.screenMesh.position.set(0, screenCenterY, -8.5);
 
 		this.screenMesh.rotation.y = 0;
 
 		this.scene.add(this.screenMesh);
 
-		const backWallZ = -11;
-		const backWallMat = new THREE.MeshStandardMaterial({
-			color: 0xd6c7b0,
-			roughness: 0.85,
-			metalness: 0.1,
-		});
-		const backWall = new THREE.Mesh(
-			new THREE.BoxGeometry(50, 24, 1.0),
-			backWallMat,
-		);
-		backWall.position.set(0, 12, backWallZ);
-		backWall.receiveShadow = true;
-		this.scene.add(backWall);
+		this.buildHallSurfaces();
+		this.buildStageDetails();
+		this.loadStagePlants();
 
-		// Side "return" walls that close the gap between the proscenium and the
-		// rear wall, so there's no visible gap/void at a grazing viewing angle.
-		const wingReturnMat = new THREE.MeshStandardMaterial({
-			color: 0xd6c7b0,
-			roughness: 0.8,
-		});
-		const wingDepth = 7; // fixed depth — plenty to close the gap regardless of screen geometry
-		for (const side of [-1, 1]) {
-			const wing = new THREE.Mesh(
-				new THREE.BoxGeometry(1.0, 24, wingDepth),
-				wingReturnMat,
-			);
-			wing.position.set(side * 24, 12, backWallZ + wingDepth / 2 + 0.5);
-			this.scene.add(wing);
-		}
-
-		// =========================
-		// Plants beside the screen
-		// =========================
-		const dracoLoader = new DRACOLoader();
-		// Uses absolute path relative to the public/ folder
-		dracoLoader.setDecoderPath("/draco/");
-
-		const plantLoader = new GLTFLoader();
-		plantLoader.setDRACOLoader(dracoLoader);
-		plantLoader.setMeshoptDecoder(MeshoptDecoder);
-
-		plantLoader.load(
-			"/models/plant-final.glb", // Recommended: Use plant-final.glb if WebP-compressed
-			(gltf) => {
-				const plantSource = gltf.scene;
-
-				// Extract geometry and material from the first mesh found in the GLTF
-				let plantGeometry: THREE.BufferGeometry | null = null;
-				let plantMaterial: THREE.Material | THREE.Material[] | null =
-					null;
-
-				plantSource.traverse((child) => {
-					if (child instanceof THREE.Mesh && !plantGeometry) {
-						plantGeometry = child.geometry;
-						plantMaterial = child.material;
-					}
-				});
-
-				if (!plantGeometry || !plantMaterial) {
-					console.error("No valid mesh found in plant GLB");
-					return;
-				}
-
-				// Define positions for the 4 plants
-				const positions = [
-					[-17, 3.5, -7],
-					[17, 3.5, -7],
-					[-22, 3.5, -1],
-					[22, 3.5, -1],
-				];
-
-				const count = positions.length;
-
-				// 2. Create a single InstancedMesh for all 4 plants
-				const instancedPlant = new THREE.InstancedMesh(
-					plantGeometry,
-					plantMaterial,
-					count,
-				);
-
-				const dummy = new THREE.Object3D();
-				const scale = 3;
-
-				// 3. Set transformation matrix for each plant instance
-				positions.forEach(([x, y, z], index) => {
-					dummy.position.set(x, y, z);
-					dummy.scale.setScalar(scale);
-					dummy.rotation.y = 0;
-					dummy.updateMatrix();
-
-					instancedPlant.setMatrixAt(index, dummy.matrix);
-				});
-
-				// Update matrices on the GPU
-				instancedPlant.instanceMatrix.needsUpdate = true;
-				instancedPlant.castShadow = false;
-				instancedPlant.receiveShadow = false;
-
-				this.scene.add(instancedPlant);
-				this.addScreenOccluder(instancedPlant);
-			},
-			undefined,
-			(error) => {
-				console.error("PLANT GLB FAILED TO LOAD:", error);
-			},
-		);
-		//Adding Sofa in front of stage
-		const sofaLoader = new GLTFLoader();
-
-		sofaLoader.load(
-			"/models/sofa.glb",
-			(gltf) => {
-				const sofaSource = gltf.scene;
-				const addSofa = (x: number, y: number, z: number) => {
-					const sofa = sofaSource.clone(true);
-					// Position
-					sofa.position.set(x, y, z);
-					// Size
-					sofa.scale.setScalar(5);
-					// Rotation
-					sofa.rotation.y = Math.PI;
-					// Make sure the model is visible
-					sofa.visible = true;
-					sofa.traverse((child) => {
-						if (child instanceof THREE.Mesh) {
-							child.visible = true;
-							child.castShadow = false;
-							child.receiveShadow = false;
-							if (child.material) {
-								child.material.transparent = false;
-								child.material.opacity = 1;
-							}
-						}
-					});
-
-					this.scene.add(sofa);
-					this.addScreenOccluder(sofa);
-				};
-
-				// five sofas in front of the stage
-				addSofa(-10, 1.5, 7.5);
-				addSofa(-5, 1.5, 7.5);
-				addSofa(0, 1.5, 7.5);
-				addSofa(5, 1.5, 7.5);
-				addSofa(10, 1.5, 7.5);
-			},
-			undefined,
-			(error) => {
-				console.error("SOFA GLB FAILED TO LOAD:", error);
-			},
-		);
-
-		// 4. Acoustic Wooden Slat Side Walls
-		const wallBeigeMat = new THREE.MeshStandardMaterial({
-			color: 0xd6c7b0,
-			roughness: 0.75,
-			metalness: 0.0,
-		});
-		// Decorative wooden wall fins — dark warm wood
-		const wallFinWoodMat = new THREE.MeshStandardMaterial({
-			color: 0x5a3824,
-			roughness: 0.55,
-			metalness: 0.05,
-		});
-
-		const sconceGlowMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
-
-		for (const side of [-1, 1]) {
-			const wallGeo = new THREE.BoxGeometry(0.6, 18, 46);
-			const wall = new THREE.Mesh(wallGeo, wallBeigeMat);
-			wall.position.set(side * 24, 9, 10);
-			wall.rotation.y = side * -0.07;
-			this.scene.add(wall);
-			this.addScreenOccluder(wall);
-
-			for (let i = 0; i < 9; i++) {
-				const finGeo = new THREE.BoxGeometry(0.35, 12, 1.4);
-				const fin = new THREE.Mesh(finGeo, wallFinWoodMat);
-				fin.position.set(side * 23.4, 7.2, -5 + i * 4.2);
-				fin.rotation.y = side * -0.28;
-				this.scene.add(fin);
-				this.addScreenOccluder(fin);
-
-				if (i % 2 === 1) {
-					const sconceGeo = new THREE.BoxGeometry(0.2, 0.8, 0.3);
-					const sconce = new THREE.Mesh(sconceGeo, sconceGlowMat);
-					sconce.position.set(side * 23.2, 7.0, -5 + i * 4.2);
-					this.scene.add(sconce);
-					sconce.castShadow = false;
-					sconce.receiveShadow = false;
-				}
-			}
-		}
-
-		// 5. Tiered Stepped Floor Risers (STORED IN tierMeshes SO WE CAN HIDE THEM IN POV MODE TO PREVENT ANY STRIPS IN FRONT OF SCREEN)
+		const carpetPath = "/textures/stalls/";
+		const configureCarpetMap = (texture: THREE.Texture) => {
+			if (this.isDestroyed) return;
+			texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+			texture.anisotropy = Math.min(4, this.renderer.capabilities.getMaxAnisotropy());
+			texture.generateMipmaps = true;
+			texture.minFilter = THREE.LinearMipmapLinearFilter;
+			texture.needsUpdate = true;
+			this.requestRender();
+		};
+		const exr = new EXRLoader().setPath(carpetPath);
+		const carpetColor = new THREE.TextureLoader().setPath(carpetPath).load("floor_color.jpg", configureCarpetMap);
+		carpetColor.colorSpace = THREE.SRGBColorSpace;
+		const carpetNormal = exr.load("dirty_carpet_nor_gl_1k.exr", configureCarpetMap);
+		const carpetRoughness = exr.load("dirty_carpet_rough_1k.exr", configureCarpetMap);
 		const tierCarpetMat = new THREE.MeshStandardMaterial({
-			map: carpetTex,
-			roughness: 0.85,
+			map: carpetColor,
+			normalMap: carpetNormal,
+			normalScale: new THREE.Vector2(0.7, 0.7),
+			roughnessMap: carpetRoughness,
 		});
+		this.carpetMaterial = tierCarpetMat;
+
+		// Match the stall carpet's 0.65-unit tile on both broad floors and narrow treads.
+		const tileCarpet = (geometry: THREE.BoxGeometry | THREE.PlaneGeometry) => {
+			const { width, height } = geometry.parameters;
+			const depth = "depth" in geometry.parameters ? geometry.parameters.depth : 0;
+			const uv = geometry.getAttribute("uv");
+			const normal = geometry.getAttribute("normal");
+			for (let i = 0; i < uv.count; i++) {
+				const faceWidth = normal.getX(i) ? depth : width;
+				const faceHeight = normal.getY(i) ? depth : height;
+				uv.setXY(i, uv.getX(i) * faceWidth / 0.65, uv.getY(i) * faceHeight / 0.65);
+			}
+		};
 
 		const tierFrontMat = new THREE.MeshStandardMaterial({
 			color: 0x6b4f2a,
@@ -1076,20 +875,7 @@ export class AuditoriumScene {
 
 		// Same values as the new straight seat layout
 		const seatingWidth = 35.0;
-		const rowDepth = 2.2;
-		const firstRowZ = 10.0;
-
-		ROW_CONFIGS.forEach((rowConfig, idx) => {
-			const { elevation } = rowConfig;
-
-			const z = firstRowZ + idx * rowDepth;
-
-			// Height difference from the previous row
-			const fasciaHeight =
-				idx === 0
-					? elevation
-					: elevation - ROW_CONFIGS[idx - 1].elevation;
-
+		const addTier = (z: number, elevation: number, rowDepth: number, fasciaHeight: number) => {
 			// --------------------------------
 			// ROW PLATFORM
 			// --------------------------------
@@ -1100,6 +886,7 @@ export class AuditoriumScene {
 				rowDepth,
 			);
 
+			tileCarpet(platformGeo);
 			const platformMesh = new THREE.Mesh(platformGeo, tierCarpetMat);
 
 			platformMesh.position.set(STAGE_CENTER.x, elevation - 0.075, z);
@@ -1148,62 +935,179 @@ export class AuditoriumScene {
 
 			this.scene.add(aisleStepLight);
 			this.tierMeshes.push(aisleStepLight);
+		};
+
+		ROW_CONFIGS.forEach(({ elevation }, idx) => {
+			const rise = elevation - (idx === 0 ? 0 : ROW_CONFIGS[idx - 1].elevation);
+			addTier(FIRST_ROW_Z + idx * ROW_SPACING, elevation, ROW_SPACING, rise);
 		});
+		for (let i = 1; i <= rearStepCount; i++) {
+			addTier(lastRowEdge + (i - 0.5) * rearStepDepth,
+				lastRowElevation + i * rearStepRise, rearStepDepth, rearStepRise);
+		}
 		this.tierMeshes.forEach((mesh) => {
 			this.addScreenOccluder(mesh);
 		});
 		// 6. Solid Flat Ground Floor
-		const groundFloorGeo = new THREE.PlaneGeometry(50, 30);
+		const groundFloorGeo = new THREE.PlaneGeometry(50, 43);
+		tileCarpet(groundFloorGeo);
 		const groundFloorMesh = new THREE.Mesh(groundFloorGeo, tierCarpetMat);
 		groundFloorMesh.rotation.x = -Math.PI / 2;
-		groundFloorMesh.position.set(0, 0, 4);
+		groundFloorMesh.position.set(0, 0, 10.5);
 		this.scene.add(groundFloorMesh);
 
-		// 7. white Ceiling with Overhead Spotlights & Architectural Beams
-		const ceilingMat = new THREE.MeshStandardMaterial({
-			color: 0xffffff,
-			roughness: 0.9,
-		});
-		const ceilingMesh = new THREE.Mesh(
-			new THREE.PlaneGeometry(48, 52),
-			ceilingMat,
-		);
-		ceilingMesh.rotation.x = Math.PI / 2;
-		ceilingMesh.position.set(0, 16.5, 12);
-		this.scene.add(ceilingMesh);
+	}
 
-		for (let tz = 0; tz < 28; tz += 9) {
-			const trussGeo = new THREE.BoxGeometry(42, 0.45, 0.45);
-			const trussMat = new THREE.MeshStandardMaterial({
-				color: 0x162033,
-				metalness: 0.8,
-				roughness: 0.3,
-			});
-			const truss = new THREE.Mesh(trussGeo, trussMat);
-			truss.position.set(0, 15.6, tz);
-			this.scene.add(truss);
+	// Each inward-facing plane has independent material and full-image UVs.
+	// Assign an sRGB image to its material.map to dress that surface.
+	private buildHallSurfaces() {
+		const halfWidth = 22.5;
+		const height = 15.8;
+		const backZ = -10;
+		const depth = gateZ - backZ;
+		const middleZ = (gateZ + backZ) / 2;
+		const panel = (name: string, width: number, length: number, color: number) => {
+			const material = new THREE.MeshStandardMaterial({ color, roughness: 0.88 });
+			const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, length), material);
+			mesh.name = material.name = name;
+			this.scene.add(mesh);
+			return mesh;
+		};
+		const back = panel("stage-back-wall", 2 * halfWidth, height, 0x413438);
+		back.position.set(0, height / 2, backZ);
+		this.backWallTexture = new THREE.TextureLoader().load(
+			"/textures/walls/auditorium-cream-panels.png",
+			(texture) => {
+				if (this.isDestroyed) return;
+				texture.colorSpace = THREE.SRGBColorSpace;
+				texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+				back.material.color.setHex(0xffffff);
+				back.material.map = texture;
+				back.material.needsUpdate = true;
+				this.requestRender();
+			},
+		);
+		const wallMaterials: THREE.MeshStandardMaterial[] = [];
+		for (const side of [-1, 1]) {
+			const wall = panel(side < 0 ? "left-wall" : "right-wall", depth, height, 0x825745);
+			wall.position.set(side * halfWidth, height / 2, middleZ);
+			wall.rotation.y = -side * Math.PI / 2;
+			wallMaterials.push(wall.material);
 		}
+		this.sideWallTexture = new THREE.TextureLoader().load(
+			"/textures/walls/auditorium-warm-slats.png",
+			(texture) => {
+				if (this.isDestroyed) return;
+				texture.colorSpace = THREE.SRGBColorSpace;
+				texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+				for (const material of wallMaterials) {
+					material.color.setHex(0xffffff);
+					material.map = texture;
+					material.emissiveMap = texture;
+					material.emissive.setHex(0xffffff);
+					material.emissiveIntensity = 0.22;
+					material.needsUpdate = true;
+				}
+				this.requestRender();
+			},
+		);
+		const ceiling = panel("ceiling", 2 * halfWidth, depth, 0xa78272);
+		ceiling.rotation.x = Math.PI / 2;
+		ceiling.position.set(0, height, middleZ);
+		this.ceilingTexture = new THREE.TextureLoader().load(
+			"/textures/ceiling/auditorium-warm-beige.png",
+			(texture) => {
+				if (this.isDestroyed) return;
+				texture.colorSpace = THREE.SRGBColorSpace;
+				texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+				ceiling.material.color.setHex(0xffffff);
+				ceiling.material.map = texture;
+				// The supplied image already includes the cove and downlight glow.
+				ceiling.material.emissiveMap = texture;
+				ceiling.material.emissive.setHex(0xffffff);
+				ceiling.material.emissiveIntensity = 0.35;
+				ceiling.material.needsUpdate = true;
+				this.requestRender();
+			},
+		);
+	}
+
+	private buildStageDetails() {
+		const trim = new THREE.MeshBasicMaterial({ color: 0xffb36c });
+		const timber = new THREE.MeshStandardMaterial({ color: 0x71482f, roughness: 0.6 });
+		const box = (w: number, h: number, d: number, x: number, y: number, z: number, mat: THREE.Material) => {
+			const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+			mesh.position.set(x, y, z);
+			this.scene.add(mesh);
+		};
+		// Stage lip and shallow side stairs.
+		box(34, 0.09, 0.08, 0, 1.17, -1.58, trim);
+		const fascia = new THREE.InstancedMesh(new THREE.BoxGeometry(0.04, 1.05, 0.055), timber, 275);
+		const transform = new THREE.Matrix4();
+		for (let i = 0; i < fascia.count; i++) {
+			fascia.setMatrixAt(i, transform.makeTranslation(-16.92 + i * 0.123, 0.55, -1.59));
+		}
+		this.scene.add(fascia);
+		for (const side of [-1, 1]) {
+			for (let i = 0; i < 6; i++) {
+				const height = (i + 1) * 0.2;
+				const z = -1.8 - i * 0.6;
+				box(4, height, 0.6, side * 19, height / 2, z, timber);
+				box(4, 0.035, 0.04, side * 19, height, z + 0.3, trim);
+			}
+		}
+		// for (const side of [-1, 1]) {
+		// 	// Warm pools of light give the flat panels depth before artwork is added.
+		// 	const wash = new THREE.PointLight(0xffb16a, 75, 18, 2);
+		// 	wash.position.set(side * 18.6, 1.5, -7);
+		// 	this.scene.add(wash);
+		// }
+
+	}
+
+	private loadStagePlants() {
+		const decoder = new DRACOLoader().setDecoderPath("/draco/");
+		const loader = new GLTFLoader().setDRACOLoader(decoder);
+		loader.load("/models/plant-draco.glb", ({ scene: plant }) => {
+			decoder.dispose();
+			if (this.isDestroyed) return;
+			plant.scale.setScalar(5);
+			const bounds = new THREE.Box3().setFromObject(plant);
+			for (const side of [-1, 1]) {
+				const instance = plant.clone();
+				instance.name = side < 0 ? "stage-plant-left" : "stage-plant-right";
+				instance.position.set(side * 18.6, -bounds.min.y, -7.8);
+				this.scene.add(instance);
+			}
+			this.requestRender();
+		}, undefined, (error) => {
+			decoder.dispose();
+			console.error("Could not load auditorium plants:", error);
+		});
 	}
 
 	/* -------------------------------------------------------------
      ENTRANCE LOBBY & INTERACTIVE GATE
   ------------------------------------------------------------- */
 	private buildEntranceLobby() {
-		const lobbyZ = 32;
+		const lobby = new THREE.Group();
+		lobby.position.y = lobbyElevation;
+		this.scene.add(lobby);
 
 		const marbleTex = createMarbleTexture();
+		marbleTex.repeat.y *= 16 / 20;
 		const foyerFloorMat = new THREE.MeshStandardMaterial({
 			map: marbleTex,
 			roughness: 0.2,
 			metalness: 0.2,
 		});
 		const foyerFloor = new THREE.Mesh(
-			new THREE.PlaneGeometry(26, 20),
+			new THREE.PlaneGeometry(26, 16),
 			foyerFloorMat,
 		);
 		foyerFloor.rotation.x = -Math.PI / 2;
-		foyerFloor.position.set(0, 0, lobbyZ + 6);
-		this.scene.add(foyerFloor);
+		foyerFloor.position.set(0, 0, gateZ + 8);
+		lobby.add(foyerFloor);
 
 		const wallMat = new THREE.MeshStandardMaterial({
 			color: 0xe9e3d4,
@@ -1214,22 +1118,22 @@ export class AuditoriumScene {
 			new THREE.BoxGeometry(9, 10, 0.6),
 			wallMat,
 		);
-		leftWall.position.set(-7.5, 5, lobbyZ);
-		this.scene.add(leftWall);
+		leftWall.position.set(-7.5, 5, gateZ);
+		lobby.add(leftWall);
 
 		const rightWall = new THREE.Mesh(
 			new THREE.BoxGeometry(9, 10, 0.6),
 			wallMat,
 		);
-		rightWall.position.set(7.5, 5, lobbyZ);
-		this.scene.add(rightWall);
+		rightWall.position.set(7.5, 5, gateZ);
+		lobby.add(rightWall);
 
 		const topWall = new THREE.Mesh(
 			new THREE.BoxGeometry(7, 5.5, 0.6),
 			wallMat,
 		);
-		topWall.position.set(0, 7.25, lobbyZ);
-		this.scene.add(topWall);
+		topWall.position.set(0, 7.25, gateZ);
+		lobby.add(topWall);
 
 		const signTexture = createEntranceSignTexture();
 		const signMat = new THREE.MeshBasicMaterial({ map: signTexture });
@@ -1237,8 +1141,8 @@ export class AuditoriumScene {
 			new THREE.PlaneGeometry(3.8, 0.65),
 			signMat,
 		);
-		signMesh.position.set(0, 4.8, lobbyZ + 0.35);
-		this.scene.add(signMesh);
+		signMesh.position.set(0, 4.8, gateZ + 0.35);
+		lobby.add(signMesh);
 
 		const doorWidth = 3.0;
 		const doorHeight = 4.8;
@@ -1254,7 +1158,7 @@ export class AuditoriumScene {
 		});
 
 		this.leftDoorGroup = new THREE.Group();
-		this.leftDoorGroup.position.set(-doorWidth, 0, lobbyZ);
+		this.leftDoorGroup.position.set(-doorWidth, 0, gateZ);
 
 		const leftDoorPanel = new THREE.Mesh(
 			new THREE.BoxGeometry(doorWidth, doorHeight, doorThickness),
@@ -1283,10 +1187,10 @@ export class AuditoriumScene {
 		leftSign.position.set(doorWidth / 2, 2.8, 0.09);
 		this.leftDoorGroup.add(leftSign);
 
-		this.scene.add(this.leftDoorGroup);
+		lobby.add(this.leftDoorGroup);
 
 		this.rightDoorGroup = new THREE.Group();
-		this.rightDoorGroup.position.set(doorWidth, 0, lobbyZ);
+		this.rightDoorGroup.position.set(doorWidth, 0, gateZ);
 
 		const rightDoorPanel = new THREE.Mesh(
 			new THREE.BoxGeometry(doorWidth, doorHeight, doorThickness),
@@ -1310,14 +1214,14 @@ export class AuditoriumScene {
 		rightSign.position.set(-doorWidth / 2, 2.8, 0.09);
 		this.rightDoorGroup.add(rightSign);
 
-		this.scene.add(this.rightDoorGroup);
+		lobby.add(this.rightDoorGroup);
 
 		const gateHitboxGeo = new THREE.BoxGeometry(6.0, 5.0, 1.5);
 		const gateHitboxMat = new THREE.MeshBasicMaterial({ visible: false });
 		this.gateHitbox = new THREE.Mesh(gateHitboxGeo, gateHitboxMat);
-		this.gateHitbox.position.set(0, 2.5, lobbyZ);
+		this.gateHitbox.position.set(0, 2.5, gateZ);
 		this.gateHitbox.userData = { isGate: true };
-		this.scene.add(this.gateHitbox);
+		lobby.add(this.gateHitbox);
 		this.interactiveObjects.push(this.gateHitbox);
 	}
 	// helper function to freeze the matrices of an object and its children
@@ -1353,7 +1257,7 @@ export class AuditoriumScene {
 		// ---------------------------------------------------------
 
 		const velvetMat = new THREE.MeshStandardMaterial({
-			color: 0x2854a6,
+			color: 0x62433a,
 			roughness: 0.88,
 			metalness: 0.03,
 		});
@@ -1377,7 +1281,7 @@ export class AuditoriumScene {
 		});
 
 		const ledMat = new THREE.MeshBasicMaterial({
-			color: 0x3fa9ff,
+			color: 0xffae58,
 		});
 
 		/*
@@ -1585,57 +1489,8 @@ export class AuditoriumScene {
 			const seatGroup = new THREE.Group();
 
 			// -------------------------------------------------------
-			// FORCE STRAIGHT ROW SEATING
-			// Ignore any old curved X/Z positions from seat data.
-			// -------------------------------------------------------
+			seatGroup.position.set(seat.position.x, seat.position.y, seat.position.z);
 
-			const seatPitch = 1.45;
-			const centerAisleHalfWidth = 1.8;
-			const seatsPerSide = 10;
-			const firstRowZ = 10.0;
-			const rowSpacing = 2.2;
-
-			const rowIndex = ROW_CONFIGS.findIndex(
-				(rowConfig) => rowConfig.row === seat.row,
-			);
-
-			const straightZ = firstRowZ + rowIndex * rowSpacing;
-
-			let straightX: number;
-
-			if (seat.number <= seatsPerSide) {
-				// LEFT SIDE: seats 1-6
-				straightX =
-					-(centerAisleHalfWidth + seatPitch / 2) -
-					(seatsPerSide - 1 - (seat.number - 1)) * seatPitch;
-			} else if (seat.number <= seatsPerSide * 2) {
-				// RIGHT SIDE: seats 7-12
-				straightX =
-					centerAisleHalfWidth +
-					seatPitch / 2 +
-					(seat.number - seatsPerSide - 1) * seatPitch;
-			} else {
-				// Ignore seats 13 and above
-				return;
-			}
-
-			seatGroup.position.set(straightX, seat.position.y, straightZ);
-
-			// Every seat faces the screen in exactly the same direction.
-			seatGroup.rotation.set(0, 0, 0);
-
-			// IMPORTANT:
-			// These are required by your existing POV system.
-			this.seatPositions.set(
-				seat.id,
-				new THREE.Vector3(straightX, seat.position.y, straightZ),
-			);
-
-			// -------------------------------------------------------
-			// Preserve your existing seat status/tier logic
-			// -------------------------------------------------------
-
-			// -------------------------------------------------------
 			// MERGED SEAT MESHES
 			// -------------------------------------------------------
 
@@ -1684,8 +1539,8 @@ export class AuditoriumScene {
 			// 5. AISLE-END PANEL + LED
 			// -------------------------------------------------------
 
-			if (seat.number === 1 || seat.number === 7) {
-				const isLeftAisle = seat.number === 1;
+			if (seat.number === 10 || seat.number === 11) {
+				const isLeftAisle = seat.number === 11;
 
 				// Aisle wood panel
 				const endPanel = new THREE.Mesh(
@@ -1710,95 +1565,15 @@ export class AuditoriumScene {
 			}
 
 			// -------------------------------------------------------
-			// Add seat to scene and preserve existing seat map
+			// Add the seat to the audience bank
 			// -------------------------------------------------------
 
 			this.scene.add(seatGroup);
 
-			this.seatMeshes.set(seat.id, seatGroup);
 			this.freezeObjectMatrices(seatGroup);
 
-			// this.addScreenOccluder(seatGroup);
 		});
 
-		// ---------------------------------------------------------
-		// ACTIVE SELECTION BEACON
-		// Keep this exactly as part of the existing POV system.
-		// ---------------------------------------------------------
-
-		const activeRingGeo = new THREE.RingGeometry(0.4, 0.55, 32);
-
-		const activeRingMat = new THREE.MeshBasicMaterial({
-			color: 0x38bdf8,
-			side: THREE.DoubleSide,
-		});
-
-		this.activeBeaconRing = new THREE.Mesh(activeRingGeo, activeRingMat);
-
-		this.activeBeaconRing.rotation.x = -Math.PI / 2;
-
-		this.activeBeaconRing.position.set(0, 0.05, 0);
-
-		this.scene.add(this.activeBeaconRing);
-
-		this.updateActivePovVisual(this.currentPov);
-	}
-
-	/* -------------------------------------------------------------
-     UPDATE POV VISUAL HIGHLIGHTS & ZERO HINDRANCE
-  ------------------------------------------------------------- */
-	private updateActivePovVisual(pov: PovPosition) {
-		const config = POV_PRESETS[pov];
-		if (!config || !this.activeBeaconRing) return;
-
-		this.activeBeaconRing.position.set(
-			config.position.x,
-			0.1,
-			config.position.z,
-		);
-
-		// In SEATED POV mode:
-		// 1. Hide the floor riser platforms that create horizontal brown strips across the screen
-		// 2. Hide any foreground chairs in line of sight
-		if (
-			this.currentState === "SEATED"
-			// this.currentState === "CHANGING_SEAT"
-		) {
-			// Hide all tiered platform strips in front of screen for 100% crystal-clear view
-			this.tierMeshes.forEach((mesh) => {
-				mesh.visible = false;
-			});
-
-			const povX = config.position.x;
-			const povZ = config.position.z;
-
-			this.seatMeshes.forEach((group, seatId) => {
-				const pos = this.seatPositions.get(seatId);
-				if (!pos) return;
-
-				const dist = Math.sqrt(
-					(pos.x - povX) ** 2 + (pos.z - povZ) ** 2,
-				);
-				const isInForeground =
-					pos.z < povZ + 1.5 && Math.abs(pos.x - povX) < 5.0;
-
-				if (dist < 3.5 || isInForeground) {
-					group.visible = false;
-				} else {
-					group.visible = false;
-				}
-			});
-		} else {
-			// In Overview and Lobby: restore all tier platforms and chairs for full architectural 3D view
-			this.tierMeshes.forEach((mesh) => {
-				mesh.visible = true;
-			});
-
-			this.seatMeshes.forEach((group) => {
-				group.visible = true;
-			});
-		}
-		this.requestRender();
 	}
 
 	// added camera aspect for mobile portrait
@@ -1806,8 +1581,11 @@ export class AuditoriumScene {
 		const aspect = width / height;
 
 		// Desktop / landscape: keep the original 54° FOV.
-		if (aspect >= this.referenceAspect) {
-			this.camera.fov = this.referenceFov;
+		const inHall = this.currentState !== "LOBBY";
+		const framingAspect = inHall ? 2 : this.referenceAspect;
+		const verticalFov = inHall ? 43 : this.referenceFov;
+		if (aspect >= framingAspect) {
+			this.camera.fov = verticalFov;
 		} else {
 			// On narrower screens, increase vertical FOV
 			// so the horizontal composition does not become
@@ -1815,8 +1593,8 @@ export class AuditoriumScene {
 			const referenceHorizontalFov =
 				2 *
 				Math.atan(
-					Math.tan((this.referenceFov * Math.PI) / 360) *
-						this.referenceAspect,
+					Math.tan((verticalFov * Math.PI) / 360) *
+						framingAspect,
 				);
 
 			const mobileFov =
@@ -1836,15 +1614,13 @@ export class AuditoriumScene {
 	/* -------------------------------------------------------------
     CINEMATIC FLOW: GATE OPEN & CENTER-AISLE ENTRY
     ------------------------------------------------------------- */
-	public enterAuditorium(
-		targetPov: PovPosition = "CENTER",
-		onComplete?: () => void,
-	) {
+	public enterAuditorium(onComplete?: () => void) {
 		this.startContinuousRendering();
 		this.currentState = "ENTERING";
 		this.callbacks.onStateChange("ENTERING");
 
-		this.currentPov = targetPov;
+		this.updateCameraForAspect(this.camera.aspect, 1);
+		document.body.style.cursor = "default";
 
 		// Keep both screens hidden during the entrance cinematic.
 		this.areScreensRevealed = false;
@@ -1860,30 +1636,14 @@ export class AuditoriumScene {
 			screen.visible = false;
 		});
 
-		const config = POV_PRESETS[targetPov];
-
-		const aisleStart = new THREE.Vector3(0, 7.0, 20.0);
-
-		const aisleTop = new THREE.Vector3(0, 7.0, 17.5);
-
-		// const aisleMiddle = new THREE.Vector3(
-		//   0,
-		//   7.0,
-		//   16.2
-		// );
-
-		// Final destination is the actual selected seat POV
-		const finalPosition = config.position;
-
+		const entryEyeHeight = this.camera.position.y;
+		const landingCenterZ = gateZ - rearStepDepth / 2;
 		const tl = gsap.timeline({
 			onComplete: () => {
 				this.currentState = "SEATED";
 
 				this.callbacks.onStateChange("SEATED");
 
-				this.updateActivePovVisual(targetPov);
-
-				this.callbacks.onPovChange(targetPov);
 
 				this.shouldPlayYouTube = true;
 
@@ -1925,101 +1685,33 @@ export class AuditoriumScene {
 			0,
 		);
 
-		// ---------------------------------------------------------
-		// 2. ENTER THROUGH DOORS
-		// ---------------------------------------------------------
-
+		// Cross the level threshold, then descend along the aisle in one forward move.
 		tl.to(
 			this.camera.position,
 			{
-				x: aisleStart.x,
-				y: aisleStart.y,
-				z: aisleStart.z,
-				duration: 1.4,
-				ease: "power2.inOut",
+				z: seatedPosition.z,
+				duration: 5.2,
+				ease: "sine.inOut",
+				onUpdate: () => {
+					const heightFraction = THREE.MathUtils.smoothstep(
+						this.camera.position.z, seatedPosition.z, landingCenterZ,
+					);
+					this.camera.position.y = THREE.MathUtils.lerp(seatedPosition.y, entryEyeHeight, heightFraction);
+				},
 			},
 			0.5,
 		);
-
-		// Look toward the screen
 		tl.to(
 			this.currentLookAt,
 			{
-				x: config.lookAt.x,
-				y: config.lookAt.y,
-				z: config.lookAt.z,
-				duration: 1.4,
-				ease: "power2.out",
+				x: seatedFocus.x,
+				y: seatedFocus.y,
+				z: seatedFocus.z,
+				duration: 5.2,
+				ease: "sine.inOut",
 			},
 			0.5,
 		);
-
-		// ---------------------------------------------------------
-		// 3. MOVE INTO TOP OF CENTER AISLE
-		// ---------------------------------------------------------
-
-		tl.to(
-			this.camera.position,
-			{
-				x: aisleTop.x,
-				y: aisleTop.y,
-				z: aisleTop.z,
-				duration: 1.2,
-				ease: "power2.inOut",
-			},
-			1.9,
-		);
-
-		// ---------------------------------------------------------
-		// 4. DESCEND THROUGH CENTER AISLE
-		// ---------------------------------------------------------
-
-		// tl.to(
-		//   this.camera.position,
-		//   {
-		//     x: aisleMiddle.x,
-		//     y: aisleMiddle.y,
-		//     z: aisleMiddle.z,
-		//     duration: 1.2,
-		//     ease: 'power2.inOut',
-		//   },
-		//   3.1
-		// );
-
-		// ---------------------------------------------------------
-		// 5. FINAL MOVE → CENTER SEATING POSITION
-		// ---------------------------------------------------------
-
-		tl.to(
-			this.camera.position,
-			{
-				x: finalPosition.x,
-				y: finalPosition.y,
-				z: finalPosition.z,
-				duration: 1.4,
-				ease: "power2.out",
-			},
-			4.3,
-		);
-
-		// ---------------------------------------------------------
-		// 6. FINAL LOOK AT SCREEN
-		// ---------------------------------------------------------
-
-		tl.to(
-			this.currentLookAt,
-			{
-				x: config.lookAt.x,
-				y: config.lookAt.y,
-				z: config.lookAt.z,
-				duration: 1.4,
-				ease: "power2.inOut",
-			},
-			4.3,
-		);
-		// ---------------------------------------------------------
-		// 7. REVEAL SCREENS
-		// ---------------------------------------------------------
 
 		tl.call(
 			() => {
@@ -2037,144 +1729,54 @@ export class AuditoriumScene {
 				}
 			},
 			[],
-			3.2,
+			4.6,
 		);
+		tl.duration(4.7);
 	}
 
-	/* -------------------------------------------------------------
-     SWITCH BETWEEN 3 BEST SEAT POVS (LEFT, CENTER, RIGHT)
-  ------------------------------------------------------------- */
-	public switchPov(newPov: PovPosition, onComplete?: () => void) {
-		if (this.currentState === "ENTERING") return;
+	public exitToLobby() {
+		if (this.currentState !== "SEATED") return;
+		// Release the live screens as the lobby transition begins.
+		this.stopYouTubeVideo();
+		this.stopPresenterVideo();
+		if (this.rightImageScreen) {
+			this.rightImageScreen.visible = false;
+		}
+
+		this.currentState = "LOBBY";
+		this.callbacks.onStateChange("LOBBY");
+		this.updateCameraForAspect(this.camera.aspect, 1);
+
+		// Close doors
+		const tl = gsap.timeline();
+		tl.to([this.leftDoorGroup.rotation, this.rightDoorGroup.rotation], { y: 0, duration: 1.0 }, 0);
+
+		const width = this.container.clientWidth || window.innerWidth;
+		const height = this.container.clientHeight || window.innerHeight;
+		const isPortrait = height > width;
+
+		const lobbyCamera = isPortrait ? portraitLobby : desktopLobby;
 		this.startContinuousRendering();
-		this.currentPov = newPov;
-		const config = POV_PRESETS[newPov];
-		if (!config) return;
+		tl.to(this.camera.position, {
+			x: lobbyCamera.position.x,
+			y: lobbyCamera.position.y,
+			z: lobbyCamera.position.z,
+			duration: 1.6,
+			ease: "power2.inOut",
+		}, 0);
 
-		this.currentState = "CHANGING_SEAT";
-		this.callbacks.onStateChange("CHANGING_SEAT");
-		this.updateActivePovVisual(newPov);
-
-		// Smoothly glide camera from current POV to target POV in 1.1s
-		gsap.to(this.camera.position, {
-			x: config.position.x,
-			y: config.position.y,
-			z: config.position.z,
-			duration: 1.1,
+		tl.to(this.currentLookAt, {
+			x: lobbyCamera.focus.x,
+			y: lobbyCamera.focus.y,
+			z: lobbyCamera.focus.z,
+			duration: 1.6,
 			ease: "power2.inOut",
 			onComplete: () => {
-				this.currentState = "SEATED";
-				this.callbacks.onStateChange("SEATED");
-				this.updateActivePovVisual(newPov);
-				this.callbacks.onPovChange(newPov);
 				this.stopContinuousRendering();
 				this.requestRender();
-				if (onComplete) onComplete();
 			},
-		});
-
-		// Align gaze directly straight-on at presentation screen
-		gsap.to(this.currentLookAt, {
-			x: config.lookAt.x,
-			y: config.lookAt.y,
-			z: config.lookAt.z,
-			duration: 1.1,
-			ease: "power2.inOut",
-		});
-	}
-
-	/* -------------------------------------------------------------
-     SET CAMERA VIEW MODES (POV, OVERVIEW, LOBBY)
-  ------------------------------------------------------------- */
-	public setViewMode(mode: "POV" | "OVERVIEW" | "LOBBY") {
-		if (this.currentState === "ENTERING") return;
-
-		if (mode === "POV") {
-			this.switchPov(this.currentPov);
-		} else if (mode === "OVERVIEW") {
-			this.startContinuousRendering();
-			this.currentState = "OVERVIEW";
-			this.callbacks.onStateChange("OVERVIEW");
-			this.updateActivePovVisual(this.currentPov);
-
-			gsap.to(this.camera.position, {
-				x: 0,
-				y: 13.0,
-				z: 26,
-				duration: 1.6,
-				ease: "power2.inOut",
-			});
-			// gsap.to(this.currentLookAt, {
-			// 	x: 0,
-			// 	y: 4.5,
-			// 	z: 0,
-			// 	duration: 1.6,
-			// 	ease: "power2.inOut",
-			// });
-			gsap.to(this.currentLookAt, {
-				x: 0,
-				y: 4.5,
-				z: 0,
-				duration: 1.6,
-				ease: "power2.inOut",
-
-				onComplete: () => {
-					this.stopContinuousRendering();
-					this.requestRender();
-				},
-			});
-		} else if (mode === "LOBBY") {
-			// ---------------------------------------------------------
-			// STOP YOUTUBE VIDEO WHEN USER EXITS AUDITORIUM
-			// ---------------------------------------------------------
-			this.stopYouTubeVideo();
-			this.stopPresenterVideo();
-			if (this.rightImageScreen) {
-				this.rightImageScreen.visible = false;
-			}
-
-			this.currentState = "LOBBY";
-			this.callbacks.onStateChange("LOBBY");
-			this.updateActivePovVisual(this.currentPov);
-
-			// Close doors
-			gsap.to(this.leftDoorGroup.rotation, { y: 0, duration: 1.0 });
-			gsap.to(this.rightDoorGroup.rotation, { y: 0, duration: 1.0 });
-
-			const width = this.container.clientWidth || window.innerWidth;
-			const height = this.container.clientHeight || window.innerHeight;
-			const isPortrait = height > width;
-
-			const lobbyCamera = isPortrait
-				? {
-						position: { x: 0, y: 2.6, z: 36 },
-						lookAt: { x: 0, y: 2.7, z: 30 },
-					}
-				: {
-						position: { x: 0, y: 2.2, z: 38 },
-						lookAt: { x: 0, y: 2.2, z: 30 },
-					};
-			this.startContinuousRendering();
-			gsap.to(this.camera.position, {
-				x: lobbyCamera.position.x,
-				y: lobbyCamera.position.y,
-				z: lobbyCamera.position.z,
-				duration: 1.6,
-				ease: "power2.inOut",
-			});
-
-			gsap.to(this.currentLookAt, {
-				x: lobbyCamera.lookAt.x,
-				y: lobbyCamera.lookAt.y,
-				z: lobbyCamera.lookAt.z,
-				duration: 1.6,
-				ease: "power2.inOut",
-				onComplete: () => {
-					this.stopContinuousRendering();
-					this.requestRender();
-				},
-			});
-		}
+		}, 0);
+		tl.duration(3.1);
 	}
 
 	/* -------------------------------------------------------------
@@ -2225,18 +1827,10 @@ export class AuditoriumScene {
      INTERACTION & POINTER EVENTS (GATE ONLY IN LOBBY)
   ------------------------------------------------------------- */
 	private onPointerMove(event: MouseEvent) {
+		if (this.currentState !== "LOBBY") return;
 		const rect = this.container.getBoundingClientRect();
 		this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
 		this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-		// Subtle head-turn parallax when seated
-		if (this.currentState === "SEATED" && this.isMouseLooking) {
-			this.mouseOffset.x = this.mouse.x * 0.3;
-			this.mouseOffset.y = this.mouse.y * 0.15;
-		} else {
-			this.mouseOffset.x = 0;
-			this.mouseOffset.y = 0;
-		}
 
 		if (this.currentState === "LOBBY") {
 			this.raycaster.setFromCamera(this.mouse, this.camera);
@@ -2246,14 +1840,14 @@ export class AuditoriumScene {
 			);
 			if (intersects.length > 0 && intersects[0].object.userData.isGate) {
 				document.body.style.cursor = "pointer";
-				this.callbacks.onGateHover(true);
+
 				this.requestRender();
 				return;
 			}
 		}
 
 		document.body.style.cursor = "default";
-		this.callbacks.onGateHover(false);
+
 		this.requestRender();
 	}
 
@@ -2269,7 +1863,7 @@ export class AuditoriumScene {
 				true,
 			);
 			if (intersects.length > 0 && intersects[0].object.userData.isGate) {
-				this.enterAuditorium("CENTER");
+				this.enterAuditorium();
 			}
 		}
 	}
@@ -2292,15 +1886,9 @@ export class AuditoriumScene {
 		// Adjust ONLY the portrait mobile lobby camera.
 		// Desktop and landscape keep the original camera position.
 		if (this.currentState === "LOBBY") {
-			const isPortrait = height > width;
-
-			if (isPortrait) {
-				this.camera.position.set(0, 2.6, 36);
-				this.currentLookAt.set(0, 2.7, 30);
-			} else {
-				this.camera.position.set(0, 2.2, 38);
-				this.currentLookAt.set(0, 2.2, 30);
-			}
+			const lobby = height > width ? portraitLobby : desktopLobby;
+			this.camera.position.copy(lobby.position);
+			this.currentLookAt.copy(lobby.focus);
 		}
 		this.renderer.setSize(width, height);
 		this.cssRenderer.setSize(width, height);
@@ -2327,13 +1915,7 @@ export class AuditoriumScene {
 		// CAMERA LOOK TARGET
 		// -------------------------------------------------------------
 
-		this.lookTarget.set(
-			this.currentLookAt.x + this.mouseOffset.x * 1.2,
-			this.currentLookAt.y + this.mouseOffset.y * 0.6,
-			this.currentLookAt.z,
-		);
-
-		this.camera.lookAt(this.lookTarget);
+		this.camera.lookAt(this.currentLookAt);
 
 		// -------------------------------------------------------------
 		// YOUTUBE / PRESENTER SCREEN OCCLUSION
@@ -2483,6 +2065,13 @@ export class AuditoriumScene {
 			);
 		}
 
+		this.ceilingTexture?.dispose();
+		this.sideWallTexture?.dispose();
+		this.backWallTexture?.dispose();
+		this.carpetMaterial?.map?.dispose();
+		this.carpetMaterial?.normalMap?.dispose();
+		this.carpetMaterial?.roughnessMap?.dispose();
+		this.carpetMaterial?.dispose();
 		this.renderer.dispose();
 	}
 }

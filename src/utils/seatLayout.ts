@@ -2,6 +2,9 @@ import { SeatData } from '@/types/auditorium';
 
 export const STAGE_CENTER = { x: 0, y: 1.6, z: 0 };
 
+export const FIRST_ROW_Z = 5.5;
+export const ROW_SPACING = 2.55;
+
 export interface RowConfig {
   row: string;
   elevation: number;
@@ -25,15 +28,13 @@ export const ROW_CONFIGS: RowConfig[] = [
 export function generateSeatingLayout(): SeatData[] {
   const seats: SeatData[] = [];
   const seatPitch = 1.25;
-  const centerAisleHalfWidth = 1.8;
-  const rowSpacing = 2.2;
-  const firstRowZ = 10.0;
+  const centerAisleHalfWidth = 1.05;
   const seatsPerSide = 10;
 
   ROW_CONFIGS.forEach((rowConfig, rowIndex) => {
     const { row, elevation } = rowConfig;
 
-    const z = firstRowZ + rowIndex * rowSpacing;
+    const z = FIRST_ROW_Z + rowIndex * ROW_SPACING;
 
 
 

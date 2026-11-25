@@ -175,13 +175,13 @@ export function createWoodStageTexture(): THREE.CanvasTexture {
   const ctx = canvas.getContext('2d');
   if (!ctx) return new THREE.CanvasTexture(canvas);
 
-  ctx.fillStyle = '#1c120c';
+  ctx.fillStyle = '#a56c4b';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   for (let i = 0; i < 512; i += 24) {
-    ctx.fillStyle = i % 48 === 0 ? '#2a1a10' : '#1e130c';
+    ctx.fillStyle = i % 48 === 0 ? '#b77244' : '#803709';
     ctx.fillRect(0, i, 512, 22);
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillStyle = 'rgba(70,38,19,0.18)';
     ctx.fillRect(0, i + 22, 512, 2);
   }
 
